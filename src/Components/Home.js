@@ -1,78 +1,101 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { onAuthStateChanged } from "firebase/auth";
+import { onAuthStateChanged } from 'firebase/auth';
 import { auth, db } from '../firebase';
 import { doc, getDoc, updateDoc, arrayUnion } from 'firebase/firestore';
 
 function Home() {
-  const [lessonsCompleted, setLessonsCompleted] = useState(3); // Fake start
-  const [quizScore, setQuizScore] = useState(85); // Fake start
-  const navigate = useNavigate();
+  const [lessonsCompleted, setLessonsCompleted] = useState(0); // Real: Start at 0
+  const [quizScore, setQuizScore] = useState(0); // Real: Start at 0
+  const [userName, setUserName] = useState('Loading...'); // For greeting
   const [coins, setCoins] = useState(0); // Real-time coins
-  const [isRewardModalOpen, setIsRewardModalOpen] = useState(false); // New: Modal state
+  const [isRewardModalOpen, setIsRewardModalOpen] = useState(false);
+  const navigate = useNavigate();
 
   useEffect(() => {
-    const savedLessons = localStorage.getItem('lessonsCompleted') || 3;
-    const savedQuiz = localStorage.getItem('quizScore') || 85;
-    setLessonsCompleted(parseInt(savedLessons));
-    setQuizScore(parseInt(savedQuiz));
-  }, []);
-
-  useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (user) => {
+    const unsubscribe = onAuthStateChanged(auth, async (user) => {
       if (!user) {
+        console.log('No user, redirecting to signin');
         navigate('/signin');
+        return;
       }
+      console.log('🔥 User authenticated, UID:', user.uid);
+      await fetchUserData(user.uid);
     });
     return unsubscribe;
   }, [navigate]);
 
-  useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, async (user) => {
-      if (user) {
-        try {
-          const userDoc = await getDoc(doc(db, 'users', user.uid));
-          const data = userDoc.data();
-          setCoins(data?.coins || 0);
-        } catch (error) {
-          setCoins(0);
-        }
+  const fetchUserData = async (uid) => {
+    try {
+      console.log('🔍 Fetching Firestore doc for UID:', uid);
+      const userDocRef = doc(db, 'users', uid);
+      const userDoc = await getDoc(userDocRef);
+      if (userDoc.exists()) {
+        const data = userDoc.data();
+        console.log('✅ Firestore data loaded:', data);
+        setUserName(data.username || 'Money Star');
+        setLessonsCompleted(data.lessonsCompleted || 0);
+        setQuizScore(data.quizScore || 0);
+        setCoins(data.coins || 0);
+      } else {
+        console.log('❌ No Firestore doc exists for UID:', uid);
+        setUserName('Money Star');
+        setLessonsCompleted(0);
+        setQuizScore(0);
+        setCoins(0);
       }
-    });
-    return unsubscribe;
-  }, []);
+    } catch (error) {
+      console.error('❌ Firestore fetch error:', error.code, error.message);
+      setUserName('Money Star');
+      setLessonsCompleted(0);
+      setQuizScore(0);
+      setCoins(0);
+    }
+  };
+
+  // Debug button (remove in production)
+  const testFetch = async () => {
+    if (auth.currentUser) {
+      await fetchUserData(auth.currentUser.uid);
+    } else {
+      alert('No user logged in!');
+    }
+  };
 
   const handleReward = async () => {
-  if (coins < 500) {
-    alert('Minimum 500 coins required to reward your child!');
-    return;
-  }
-  try {
-    const userRef = doc(db, 'users', auth.currentUser.uid);
-    const userDoc = await getDoc(userRef);
-    const currentSavings = userDoc.data()?.realSavings || 0;
-    await updateDoc(userRef, {
-      coins: 0, // Reset coins
-      realSavings: currentSavings + coins, // Add coins as naira to savings
-      rewardHistory: arrayUnion({
-        amount: coins,
-        date: new Date().toLocaleDateString(),
-      }),
-    });
-    setCoins(0);
-    alert(`Rewarded ${coins} naira to your child's Piggy Bank!`);
-    setIsRewardModalOpen(false);
-  } catch (error) {
-    console.error('Reward error:', error);
-    alert('Reward failed—try again!');
-  }
-};
+    if (coins < 500) {
+      alert('Minimum 500 coins required to reward your child!');
+      return;
+    }
+    try {
+      const userRef = doc(db, 'users', auth.currentUser.uid);
+      const userDoc = await getDoc(userRef);
+      const currentSavings = userDoc.data()?.realSavings || 0;
+      await updateDoc(userRef, {
+        coins: 0,
+        realSavings: currentSavings + coins,
+        rewardHistory: arrayUnion({
+          amount: coins,
+          date: new Date().toLocaleDateString(),
+        }),
+      });
+      setCoins(0);
+      alert(`Rewarded ${coins} naira to your child's Piggy Bank!`);
+      setIsRewardModalOpen(false);
+    } catch (error) {
+      console.error('Reward error:', error);
+      alert('Reward failed—try again!');
+    }
+  };
 
   return (
     <div className="home-container">
       <h1 className="logo">MC Millionaire Child</h1>
-      <h2 className="greeting">Hi there, Money Star! ⭐</h2>
+      <h2 className="greeting">Hi {userName}, Money Star! ⭐</h2>
       <p className="sub-greeting">What would you like to learn today?</p>
+      <button onClick={testFetch} style={{ marginBottom: '10px', padding: '5px 10px', fontSize: '12px' }}>
+        🔍 Test Fetch Data
+      </button>
       <div className="progress-section">
         <h3>Your Progress <span className="target-icon">🎯</span></h3>
         <div className="progress-item">

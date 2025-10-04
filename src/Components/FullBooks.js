@@ -1,19 +1,19 @@
 import React, { useState, useEffect } from 'react';
 import { Link, Outlet } from 'react-router-dom';
-import { onAuthStateChanged, getAuth } from 'firebase/auth'; // Restored
-import { doc, updateDoc, getDoc, arrayUnion } from 'firebase/firestore'; // Restored
-import { auth, db } from '../firebase'; // Restored
+import { onAuthStateChanged } from 'firebase/auth'; 
+import { doc, getDoc } from 'firebase/firestore'; 
+import { auth, db } from '../firebase'; 
 
 function FullBooks() {
   const [currentUser, setCurrentUser] = useState(null);
-  const [userUnlockedBooks, setUserUnlockedBooks] = useState([]); // Track unlocked books (unused for now)
+  const [userUnlockedBooks, setUserUnlockedBooks] = useState([]); 
 
   const fullBooks = [
-    { title: "Millionaire Child", id: "millionaire-child", coverUrl: "https://via.placeholder.com/150x200?text=Millionaire+Child" }, // Placeholder image
-    { title: "Ada's Dream Bicycle", id: "adas-dream-bicycle", coverUrl: "https://via.placeholder.com/150x200?text=Ada's+Dream+Bicycle" }, // Placeholder image
+    { title: "Millionaire Child", id: "millionaire-child", coverUrl: "https://via.placeholder.com/150x200?text=Millionaire+Child" },
+    { title: "Ada's Dream Bicycle", id: "adas-dream-bicycle", coverUrl: "https://via.placeholder.com/150x200?text=Ada's+Dream+Bicycle" },
   ];
 
-  // Load user data from Firebase (kept for consistency, though unused here)
+  // Load user data from Firebase
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
       if (user) {
