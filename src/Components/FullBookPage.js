@@ -32,7 +32,7 @@ function FullBookPage() {
   return (
     <div style={{ textAlign: "center", padding: "20px" }}>
       <h3>{book.title}</h3>
-      <img
+      {/* <img
         src={book.image}
         alt={`${book.title} cover`}
         style={{
@@ -41,7 +41,7 @@ function FullBookPage() {
           margin: "10px 0",
           boxShadow: "0 2px 6px rgba(0,0,0,0.2)",
         }}
-      />
+      /> */}
       <PdfViewer pdfUrl={book.pdfUrl} />
     </div>
   );
