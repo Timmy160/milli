@@ -606,10 +606,9 @@ button:hover {
 }
 
 .progress-bar {
-  height: 8px;
-  background-color: #4caf50; /* Green for lessons */
+  height: 3px;
   border-radius: 5px;
-  margin: 5px 0;
+  margin: 2px 0;
   width: 100%; /* FIX: Ensure bar stays within container */
   box-sizing: border-box; /* FIX: Include padding/margins in width */
 }
@@ -831,14 +830,6 @@ button:hover {
   border: 1px solid #ddd;
 }
 
-.progress-bar {
-  height: 10px;
-  background-color: #4caf50;
-  border-radius: 5px;
-  margin: 5px 0;
-  width: 100%; /* FIX: Ensure bar stays within container */
-  box-sizing: border-box; /* FIX: Include padding/margins in width */
-}
 
 /* Goal inputs */
 .goal-input {

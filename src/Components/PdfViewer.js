@@ -1,6 +1,8 @@
-import React, { useState, useEffect } from 'react';
-import { Document, Page, pdfjs } from 'react-pdf';
-pdfjs.GlobalWorkerOptions.workerSrc = '/pdf.worker.min.mjs'; // Ensure worker is accessible
+import React, { useState, useEffect } from "react";
+import { Document, Page, pdfjs } from "react-pdf";
+
+// ✅ Correct Worker Path
+pdfjs.GlobalWorkerOptions.workerSrc = `https://unpkg.com/pdfjs-dist@${pdfjs.version}/build/pdf.worker.min.mjs`;
 
 function PdfViewer({ pdfUrl }) {
   const [numPages, setNumPages] = useState(null);
@@ -8,67 +10,80 @@ function PdfViewer({ pdfUrl }) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  // Preload PDF to reduce lag
+  // ✅ Preload check (optional)
   useEffect(() => {
     const loadPdf = async () => {
       try {
-        const response = await fetch(pdfUrl, { mode: 'cors' });
-        if (!response.ok) throw new Error('PDF fetch failed');
+        const res = await fetch(pdfUrl);
+        if (!res.ok) throw new Error("Failed to fetch PDF");
+        setError(null);
       } catch (err) {
-        setError(err.message || 'Failed to fetch PDF');
+        setError(err.message);
+      } finally {
         setLoading(false);
       }
     };
     loadPdf();
   }, [pdfUrl]);
 
-  function onDocumentLoadSuccess({ numPages }) {
+  const onDocumentLoadSuccess = ({ numPages }) => {
     setNumPages(numPages);
     setPageNumber(1);
     setLoading(false);
-    setError(null);
-  }
+  };
 
-  function onDocumentLoadError(error) {
-    console.error('PDF Error:', error);
-    setError(error.message || 'Failed to load PDF');
+  const onDocumentLoadError = (err) => {
+    console.error("PDF load error:", err);
+    setError(err.message);
     setLoading(false);
-  }
+  };
 
-  const handlePrevious = () => setPageNumber(pageNumber > 1 ? pageNumber - 1 : 1);
-  const handleNext = () => setPageNumber(pageNumber < numPages ? pageNumber + 1 : numPages);
+  const nextPage = () => setPageNumber((p) => Math.min(p + 1, numPages));
+  const prevPage = () => setPageNumber((p) => Math.max(p - 1, 1));
 
   const getPageWidth = () => (window.innerWidth > 768 ? 600 : window.innerWidth * 0.9);
 
-  if (loading) return <div style={{ padding: '20px', textAlign: 'center' }}>Loading PDF...</div>;
-  if (error) return (
-    <div style={{ padding: '20px', textAlign: 'center', color: 'red' }}>
-      <h3>PDF Failed to Load</h3>
-      <p>Error: {error}</p>
-      <p><a href={pdfUrl} target="_blank" rel="noopener noreferrer">Open in New Tab</a></p>
-    </div>
-  );
+  // ✅ Render States
+  if (loading) return <div style={{ textAlign: "center", padding: "20px" }}>Loading PDF...</div>;
+  if (error)
+    return (
+      <div style={{ textAlign: "center", color: "red", padding: "20px" }}>
+        <h3>PDF Failed to Load</h3>
+        <p>{error}</p>
+        <p>
+          <a href={pdfUrl} target="_blank" rel="noopener noreferrer">
+            Open PDF in New Tab
+          </a>
+        </p>
+      </div>
+    );
 
   return (
-    <div className="pdf-viewer">
+    <div style={{ textAlign: "center", padding: "20px" }}>
       <Document
         file={pdfUrl}
         onLoadSuccess={onDocumentLoadSuccess}
         onLoadError={onDocumentLoadError}
-        options={{ workerSrc: '/pdf.worker.min.mjs' }}
-        loading={<div style={{ padding: '20px' }}>Loading...</div>}
+        loading={<div>Loading document...</div>}
       >
-        <Page 
-          pageNumber={pageNumber} 
+        <Page
+          pageNumber={pageNumber}
           width={getPageWidth()}
-          renderTextLayer={false} // Disable to speed up mobile
-          renderAnnotationLayer={false} // Disable to reduce load
-          loading={<div style={{ padding: '10px' }}>Loading page...</div>}
+          renderTextLayer={false}
+          renderAnnotationLayer={false}
         />
       </Document>
-      <div className="pdf-navigation">
-        <button onClick={handlePrevious} disabled={pageNumber <= 1}>Previous</button>
-        <button onClick={handleNext} disabled={pageNumber >= numPages}>Next</button>
+
+      <div style={{ marginTop: "15px" }}>
+        <button onClick={prevPage} disabled={pageNumber <= 1}>
+          ◀ Previous
+        </button>
+        <span style={{ margin: "0 10px" }}>
+          Page {pageNumber} of {numPages}
+        </span>
+        <button onClick={nextPage} disabled={pageNumber >= numPages}>
+          Next ▶
+        </button>
       </div>
     </div>
   );
