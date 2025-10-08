@@ -461,7 +461,7 @@ input:focus {
 }
 
 /* --- BUTTON --- */
-button {
+/* button {
   width: 100%;
   padding: 12px;
   background: linear-gradient(135deg, #4caf50, #2e7d32);
@@ -477,7 +477,7 @@ button:hover {
   background: linear-gradient(135deg, #66bb6a, #43a047);
   transform: translateY(-2px);
   box-shadow: 0 6px 12px rgba(76, 175, 80, 0.25);
-}
+} */
 
 /* --- FOOTER TEXT --- */
 .auth-card p {
@@ -687,55 +687,24 @@ button:hover {
 /* PDF VIEWER STYLES */
 /* ========================================= */
 /* Styles for viewing PDFs, including navigation and canvas adjustments. */
-
-.pdf-viewer {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  padding: 20px;
-  max-width: 600px; /* Match PDF width */
-  margin: 0 auto; /* Center the container */
-  overflow: hidden; /* Prevent text overflow */
-}
-
-.pdf-navigation {
-  margin-top: 10px;
-  display: flex;
-  align-items: center;
-  gap: 20px; /* Increase spacing between buttons */
-}
-
-.pdf-navigation button {
-  padding: 8px 15px; /* Larger padding for better click area */
-  cursor: pointer;
-  background-color: #4caf50; /* Green background */
-  color: white; /* White text */
-  border: 1px solid #ccc;
-  border-radius: 4px;
-}
-
-.pdf-navigation button:disabled {
-  cursor: not-allowed;
-  opacity: 0.5;
-  background-color: #4caf50; /* Keep green but faded */
-  color: white; /* White text remains */
-}
-
+/* Ensure PDF canvas fills screen and is centered */
 .react-pdf__Page__canvas {
-  margin: 0 auto;
-  width: 100% !important;
-  height: auto !important;
-  max-width: 600px; /* Ensure it doesn’t stretch */
+  width: 100vw !important;
+  max-width: 100% !important; /* Prevent overflow */
+  height: 100% !important; /* Scale height proportionally */
+  margin: 0 auto !important; /* Center horizontally */
+  display: block !important; /* Ensure proper centering */
 }
 
+/* Show text layer for readability */
 .react-pdf__Page__textContent {
   color: black;
   font-size: 12px;
-  display: none; /* Hide text layer to remove big letters */
 }
 
+/* Hide annotations to avoid extra content */
 .react-pdf__Page__annotations {
-  display: none; /* Hide annotations to remove extra content */
+  display: none;
 }
 
 /* ========================================= */

@@ -11,11 +11,14 @@ function Home() {
   const [coins, setCoins] = useState(0);
   const [isRewardModalOpen, setIsRewardModalOpen] = useState(false);
   const [progressWidth, setProgressWidth] = useState(0);
+  const [isLogoutHovered, setIsLogoutHovered] = useState(false);
+  const [isConfirmHovered, setIsConfirmHovered] = useState(false);
+  const [isCancelHovered, setIsCancelHovered] = useState(false);
   const navigate = useNavigate();
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
-      console.log("Authenticated user:", user); // Log the user object
+      console.log("Authenticated user:", user);
       if (!user) {
         console.log("No user authenticated, redirecting to /signin");
         navigate("/signin");
@@ -48,9 +51,8 @@ function Home() {
     }
   };
 
-  // Animate progress bar on load
   useEffect(() => {
-    console.log("Current userName:", userName); // Log userName state changes
+    console.log("Current userName:", userName);
     setProgressWidth(0);
     const timer = setTimeout(() => {
       setProgressWidth((lessonsCompleted / 10) * 100);
@@ -166,7 +168,30 @@ function Home() {
       </div>
 
       {/* Logout Button */}
-      <button className="logout-btn bottom-logout" onClick={handleLogout}>
+      <button
+        className="logout-btn bottom-logout"
+        onClick={handleLogout}
+        onMouseEnter={() => setIsLogoutHovered(true)}
+        onMouseLeave={() => setIsLogoutHovered(false)}
+        style={{
+          display: 'block',
+          margin: '20px auto', // Center and add space above
+          backgroundColor: isLogoutHovered ? '#c82333' : '#dc3545',
+          color: 'white',
+          padding: '12px 24px',
+          border: 'none',
+          borderRadius: '8px',
+          fontSize: '16px',
+          fontWeight: '600',
+          fontFamily: 'system-ui, -apple-system, sans-serif',
+          cursor: 'pointer',
+          boxShadow: '0 4px 12px rgba(220, 53, 69, 0.3)',
+          transition: 'all 0.3s ease',
+          textTransform: 'uppercase',
+          letterSpacing: '0.5px',
+        }}
+        aria-label="Logout from account"
+      >
         Logout
       </button>
 
@@ -177,12 +202,48 @@ function Home() {
             <h3>Reward Your Child</h3>
             <p>Reward {coins} naira to Piggy Bank? (Min 500 coins)</p>
             <div className="modal-buttons">
-              <button className="confirm" onClick={handleReward}>
+              <button
+                className="confirm"
+                onClick={handleReward}
+                onMouseEnter={() => setIsConfirmHovered(true)}
+                onMouseLeave={() => setIsConfirmHovered(false)}
+                style={{
+                  backgroundColor: isConfirmHovered ? '#218838' : '#28a745',
+                  color: 'white',
+                  padding: '10px 20px',
+                  border: 'none',
+                  borderRadius: '5px',
+                  fontSize: '14px',
+                  fontWeight: '600',
+                  fontFamily: 'system-ui, -apple-system, sans-serif',
+                  cursor: 'pointer',
+                  boxShadow: '0 2px 8px rgba(40, 167, 69, 0.3)',
+                  transition: 'all 0.3s ease',
+                  marginRight: '10px',
+                }}
+                aria-label="Confirm reward to Piggy Bank"
+              >
                 Confirm
               </button>
               <button
                 className="cancel"
                 onClick={() => setIsRewardModalOpen(false)}
+                onMouseEnter={() => setIsCancelHovered(true)}
+                onMouseLeave={() => setIsCancelHovered(false)}
+                style={{
+                  backgroundColor: isCancelHovered ? '#5a6268' : '#6c757d',
+                  color: 'white',
+                  padding: '10px 20px',
+                  border: 'none',
+                  borderRadius: '5px',
+                  fontSize: '14px',
+                  fontWeight: '600',
+                  fontFamily: 'system-ui, -apple-system, sans-serif',
+                  cursor: 'pointer',
+                  boxShadow: '0 2px 8px rgba(108, 117, 125, 0.3)',
+                  transition: 'all 0.3s ease',
+                }}
+                aria-label="Cancel reward"
               >
                 Cancel
               </button>

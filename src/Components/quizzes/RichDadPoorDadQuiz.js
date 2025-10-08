@@ -1,9 +1,22 @@
 import React, { useState, useEffect } from 'react';
-import { doc, increment, setDoc, updateDoc } from 'firebase/firestore';
+import { doc, increment, updateDoc } from 'firebase/firestore';
 import { onAuthStateChanged } from 'firebase/auth';
 import { auth, db } from '../../firebase';
 
+function shuffleOptions(options, answerIndex) {
+  const arr = options.map((option, idx) => ({
+    text: option,
+    isCorrect: idx === answerIndex,
+  }));
+  for (let i = arr.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [arr[i], arr[j]] = [arr[j], arr[i]];
+  }
+  return arr;
+}
+
 const questions = [
+  // All 60 questions from the provided code are included here, unchanged
   { question: "What did Rich Dad teach Robert and Mike about making money when they were kids?",
     options: [
       "A) Save all your pocket money in a bank",
@@ -719,106 +732,143 @@ function RichDadPoorDadQuiz() {
   const [score, setScore] = useState(0);
   const [currentQuestion, setCurrentQuestion] = useState(0);
   const [showScore, setShowScore] = useState(false);
-  const [feedback, setFeedback] = useState('');
   const [shuffledQuestions, setShuffledQuestions] = useState([]);
   const [currentUser, setCurrentUser] = useState(null);
   const [virtualBalance, setVirtualBalance] = useState(0);
+  const [selectedOption, setSelectedOption] = useState(null);
+  const [showFeedback, setShowFeedback] = useState(false);
 
   useEffect(() => {
-  const unsubscribe = onAuthStateChanged(auth, (user) => {
-    setCurrentUser(user);
-  });
-  return unsubscribe;
-}, []); 
+    const unsubscribe = onAuthStateChanged(auth, (user) => {
+      setCurrentUser(user);
+    });
+    return unsubscribe;
+  }, []);
 
-useEffect(() => {
-  const shuffleArray = (array) => {
-    let mixed = [...array];
-    for (let i = mixed.length - 1; i > 0; i--) {
-      const j = Math.floor(Math.random() * (i + 1));
-      [mixed[i], mixed[j]] = [mixed[j], mixed[i]];
+  useEffect(() => {
+    const shuffledQuestionsList = [...questions].sort(() => Math.random() - 0.5);
+    const shuffled = shuffledQuestionsList.map((q) => {
+      const shuffledOpts = shuffleOptions(q.options, q.answer);
+      return {
+        ...q,
+        options: shuffledOpts.map((opt) => opt.text),
+        answer: shuffledOpts.findIndex((opt) => opt.isCorrect),
+      };
+    });
+    setShuffledQuestions(shuffled);
+  }, []);
+
+  const handleAnswer = async (selectedIndex) => {
+    if (!shuffledQuestions.length) return;
+    setSelectedOption(selectedIndex);
+    setShowFeedback(true);
+    const isCorrect = selectedIndex === shuffledQuestions[currentQuestion].answer;
+    if (isCorrect) {
+      setScore(score + 1);
+      if (currentUser) {
+        const userRef = doc(db, 'users', currentUser.uid);
+        await updateDoc(userRef, {
+          coins: increment(1),
+          quizScore: increment(1),
+        });
+      }
     }
-    return mixed;
+    setTimeout(() => {
+      setShowFeedback(false);
+      setSelectedOption(null);
+      const nextQuestion = currentQuestion + 1;
+      if (nextQuestion < shuffledQuestions.length) {
+        setCurrentQuestion(nextQuestion);
+      } else {
+        setShowScore(true);
+      }
+    }, 2000);
   };
 
-  let mixedQuestions = shuffleArray(questions);
-  
-  mixedQuestions = mixedQuestions.map((q) => {
-    const shuffledOptions = shuffleArray(q.options); // Mix the options
-    const newAnswer = shuffledOptions.indexOf(q.options[q.answer]); // Find new position of correct answer
-    return { ...q, options: shuffledOptions, answer: newAnswer }; // Update question
-  });
-
-  setShuffledQuestions(mixedQuestions); // Save the fully shuffled list
-}, []);
-
-const handleAnswer = async (selectedIndex) => {
-  const isCorrect = selectedIndex === shuffledQuestions[currentQuestion].answer;
-  if (isCorrect) {
-    setScore(score + 1);
-    setFeedback('Correct! ' + shuffledQuestions[currentQuestion].explanation);
-    if (currentUser) {
+  const handleDeposit = async () => {
+    if (!currentUser) {
+      alert('Please log in to deposit coins!');
+      return;
+    }
+    const coinsToDeposit = score * 1;
+    try {
       const userRef = doc(db, 'users', currentUser.uid);
-      updateDoc(userRef, {
-        coins: increment(1) // 1 coin per correct answer
+      await updateDoc(userRef, {
+        virtualBalance: increment(coinsToDeposit),
       });
+      setVirtualBalance(virtualBalance + coinsToDeposit);
+      alert(`${coinsToDeposit} coins deposited to your virtual savings! Great job!`);
+    } catch (error) {
+      console.error('Deposit error:', error);
+      alert('Deposit failed—try again!');
     }
-    const user = auth.currentUser;
-    if (user) {
-      await setDoc(doc(db, "users", user.uid), { quizScore: score + 1 }, { merge: true });
-    }
-  } else {
-    setFeedback('Oops! ' + shuffledQuestions[currentQuestion].explanation);
-  }
-  const nextQuestion = currentQuestion + 1;
-  if (nextQuestion < shuffledQuestions.length) {
-    setCurrentQuestion(nextQuestion);
-  } else {
-    setShowScore(true);
-  }
-};
+  };
 
-const handleDeposit = async () => {
-  if (!currentUser) {
-    alert('Please log in to deposit coins!');
-    return;
+  if (!shuffledQuestions.length) {
+    return (
+      <div style={{ padding: '20px', textAlign: 'center' }}>
+        Loading quiz...
+      </div>
+    );
   }
-  const coinsToDeposit = score * 1; // Total coins based on correct answers
-  try {
-    const userRef = doc(db, 'users', currentUser.uid);
-    await updateDoc(userRef, {
-      virtualBalance: increment(coinsToDeposit)
-    });
-    setVirtualBalance(virtualBalance + coinsToDeposit);
-    alert(`${coinsToDeposit} coins deposited to your virtual savings! Great job!`);
-  } catch (error) {
-    console.error('Deposit error:', error);
-    alert('Deposit failed—try again!');
-  }
-};
 
-if (shuffledQuestions.length === 0) {
-  return <div>Loading quiz...</div>;
-}
   return (
-    <div>
+    <div style={{ padding: '20px', textAlign: 'center' }}>
       <h2>Rich Dad Poor Dad Quiz</h2>
       {showScore ? (
         <div>
           <p>Your score: {score} out of {shuffledQuestions.length}</p>
-          <button onClick={handleDeposit}>Deposit {score * 1} Coins to Savings!</button>
+          <button
+            style={{
+              backgroundColor: '#007bff',
+              color: 'white',
+              padding: '10px 20px',
+              border: 'none',
+              borderRadius: '5px',
+              cursor: 'pointer',
+            }}
+            onClick={handleDeposit}
+          >
+            Deposit {score * 1} Coins to Savings!
+          </button>
         </div>
       ) : (
         <div>
-          <p>Question {currentQuestion + 1}/{shuffledQuestions.length}: {shuffledQuestions[currentQuestion].question}</p>
-          <ul>
+          <p>
+            Question {currentQuestion + 1}/{shuffledQuestions.length}: {shuffledQuestions[currentQuestion].question}
+          </p>
+          <ul style={{ listStyle: 'none', padding: 0 }}>
             {shuffledQuestions[currentQuestion].options.map((option, index) => (
-              <li key={index}>
-                <button onClick={() => handleAnswer(index)}>{option}</button>
+              <li key={index} style={{ margin: '10px 0' }}>
+                <button
+                  onClick={() => handleAnswer(index)}
+                  disabled={showFeedback}
+                  style={{
+                    backgroundColor: showFeedback
+                      ? index === shuffledQuestions[currentQuestion].answer
+                        ? '#28a745' // Green for correct
+                        : selectedOption === index
+                        ? '#dc3545' // Red for incorrect
+                        : '#007bff' // Default blue
+                      : '#007bff',
+                    color: 'white',
+                    padding: '10px 20px',
+                    border: 'none',
+                    borderRadius: '5px',
+                    cursor: showFeedback ? 'default' : 'pointer',
+                    width: '200px',
+                    textAlign: 'left',
+                  }}
+                >
+                  {showFeedback && index === shuffledQuestions[currentQuestion].answer
+                    ? `Correct! ${shuffledQuestions[currentQuestion].explanation}`
+                    : showFeedback && selectedOption === index && selectedOption !== shuffledQuestions[currentQuestion].answer
+                    ? `Incorrect! ${shuffledQuestions[currentQuestion].explanation}`
+                    : option}
+                </button>
               </li>
             ))}
           </ul>
-          {feedback && <p>{feedback}</p>}
         </div>
       )}
     </div>

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { Document, Page, pdfjs } from "react-pdf";
 
-// ✅ Correct Worker Path
+// Set the worker source for pdf.js
 pdfjs.GlobalWorkerOptions.workerSrc = `https://unpkg.com/pdfjs-dist@${pdfjs.version}/build/pdf.worker.min.mjs`;
 
 function PdfViewer({ pdfUrl }) {
@@ -9,8 +9,27 @@ function PdfViewer({ pdfUrl }) {
   const [pageNumber, setPageNumber] = useState(1);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [pageScale, setPageScale] = useState(calculatePageScale());
 
-  // ✅ Preload check (optional)
+  // Calculate scale to fill screen
+  function calculatePageScale() {
+    const screenWidth = window.innerWidth;
+    const isMobile = screenWidth <= 768;
+    // Aggressive scale for mobile to maximize readability
+    const baseScale = isMobile ? screenWidth / 200 : screenWidth / 400;
+    return Math.max(baseScale * (window.devicePixelRatio || 1), 2); // Boost for high-DPI screens
+  }
+
+  // Update scale on window resize
+  useEffect(() => {
+    const handleResize = () => {
+      setPageScale(calculatePageScale());
+    };
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
+
+  // Preload PDF check
   useEffect(() => {
     const loadPdf = async () => {
       try {
@@ -41,13 +60,37 @@ function PdfViewer({ pdfUrl }) {
   const nextPage = () => setPageNumber((p) => Math.min(p + 1, numPages));
   const prevPage = () => setPageNumber((p) => Math.max(p - 1, 1));
 
-  const getPageWidth = () => (window.innerWidth > 768 ? 600 : window.innerWidth * 0.9);
-
-  // ✅ Render States
-  if (loading) return <div style={{ textAlign: "center", padding: "20px" }}>Loading PDF...</div>;
-  if (error)
+  // Render loading state
+  if (loading) {
     return (
-      <div style={{ textAlign: "center", color: "red", padding: "20px" }}>
+      <div
+        style={{
+          display: "flex",
+          justifyContent: "center",
+          alignItems: "center",
+          textAlign: "center",
+          fontSize: "clamp(1rem, 4vw, 1.2rem)",
+        }}
+      >
+        Loading PDF...
+      </div>
+    );
+  }
+
+  // Render error state
+  if (error) {
+    return (
+      <div
+        style={{
+          display: "flex",
+          flexDirection: "column",
+          justifyContent: "center",
+          alignItems: "center",
+          textAlign: "center",
+          color: "red",
+          fontSize: "clamp(1rem, 4vw, 1.2rem)",
+        }}
+      >
         <h3>PDF Failed to Load</h3>
         <p>{error}</p>
         <p>
@@ -57,9 +100,10 @@ function PdfViewer({ pdfUrl }) {
         </p>
       </div>
     );
+  }
 
   return (
-    <div style={{ textAlign: "center", padding: "20px" }}>
+    <>
       <Document
         file={pdfUrl}
         onLoadSuccess={onDocumentLoadSuccess}
@@ -68,24 +112,65 @@ function PdfViewer({ pdfUrl }) {
       >
         <Page
           pageNumber={pageNumber}
-          width={getPageWidth()}
-          renderTextLayer={false}
+          scale={pageScale}
+          renderTextLayer={true}
           renderAnnotationLayer={false}
+          width={window.innerWidth}
+          height={window.innerHeight}
         />
       </Document>
+      <div
+        style={{
+          marginTop: "15px",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          gap: "10px",
+          position: "fixed",
+          bottom: "10px",
+          left: "50%",
+          transform: "translateX(-50%)",
+          backgroundColor: "rgba(184, 184, 210, 0.8)",
 
-      <div style={{ marginTop: "15px" }}>
-        <button onClick={prevPage} disabled={pageNumber <= 1}>
-          ◀ Previous
+          padding: "5px",
+          borderRadius: "4px",
+        }}
+      >
+        <button
+          onClick={prevPage}
+          disabled={pageNumber <= 1}
+          style={{
+            padding: "8px 16px",
+            fontSize: "clamp(0.9rem, 3vw, 1rem)",
+            cursor: pageNumber <= 1 ? "not-allowed" : "pointer",
+            backgroundColor: pageNumber <= 1 ? "#ccc" : "#2672c4ff",
+            color: "#fff",
+            border: "none",
+            borderRadius: "4px",
+          }}
+        >
+          ◀ Prev
         </button>
-        <span style={{ margin: "0 10px" }}>
+        <span style={{ fontSize: "clamp(0.9rem, 3vw, 1rem)" }}>
           Page {pageNumber} of {numPages}
         </span>
-        <button onClick={nextPage} disabled={pageNumber >= numPages}>
+        <button
+          onClick={nextPage}
+          disabled={pageNumber >= numPages}
+          style={{
+            padding: "8px 16px",
+            fontSize: "clamp(0.9rem, 3vw, 1rem)",
+            cursor: pageNumber >= numPages ? "not-allowed" : "pointer",
+            backgroundColor: pageNumber >= numPages ? "#ccc" : "#2672c4ff",
+            color: "#fff",
+            border: "none",
+            borderRadius: "4px",
+          }}
+        >
           Next ▶
         </button>
       </div>
-    </div>
+    </>
   );
 }
 

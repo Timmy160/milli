@@ -142,13 +142,13 @@ function GeneralQuiz() {
   const [score, setScore] = useState(0);
   const [currentQuestion, setCurrentQuestion] = useState(0);
   const [showScore, setShowScore] = useState(false);
-  const [feedback, setFeedback] = useState('');
   const [shuffledQuestions, setShuffledQuestions] = useState([]);
   const [currentUser, setCurrentUser] = useState(null);
   const [virtualBalance, setVirtualBalance] = useState(0);
+  const [selectedOption, setSelectedOption] = useState(null);
+  const [showFeedback, setShowFeedback] = useState(false);
 
   useEffect(() => {
-    // Shuffle the entire question list randomly, then shuffle options for each
     const shuffledQuestionsList = [...questions].sort(() => Math.random() - 0.5);
     const shuffled = shuffledQuestionsList.map(q => {
       const shuffledOpts = shuffleOptions(q.options, q.answer);
@@ -167,79 +167,119 @@ function GeneralQuiz() {
     }
   }, [showScore, score]);
 
-useEffect(() => {
-  const unsubscribe = onAuthStateChanged(auth, (user) => {
-    if (user) {
-      setCurrentUser(user);
-    } else {
-      setCurrentUser(null);
-    }
-  });
-  return unsubscribe;
-}, []);
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, (user) => {
+      if (user) {
+        setCurrentUser(user);
+      } else {
+        setCurrentUser(null);
+      }
+    });
+    return unsubscribe;
+  }, []);
 
   const handleAnswer = (selectedIndex) => {
-  if (!shuffledQuestions.length) return;
-  const isCorrect = selectedIndex === shuffledQuestions[currentQuestion].answer;
-  if (isCorrect) {
-    setScore(score + 1);
-    setFeedback('Correct! ' + shuffledQuestions[currentQuestion].explanation);
-    if (currentUser) {
-      const userRef = doc(db, 'users', currentUser.uid);
-      updateDoc(userRef, {
-        coins: increment(1) // 1 coin per correct answer
-      });
+    if (!shuffledQuestions.length) return;
+    setSelectedOption(selectedIndex);
+    setShowFeedback(true);
+    const isCorrect = selectedIndex === shuffledQuestions[currentQuestion].answer;
+    if (isCorrect) {
+      setScore(score + 1);
+      if (currentUser) {
+        const userRef = doc(db, 'users', currentUser.uid);
+        updateDoc(userRef, {
+          coins: increment(1)
+        });
+      }
     }
-  } else {
-    setFeedback('Oops! ' + shuffledQuestions[currentQuestion].explanation);
-  }
-  const nextQuestion = currentQuestion + 1;
-  if (nextQuestion < shuffledQuestions.length) {
-    setCurrentQuestion(nextQuestion);
-  } else {
-    setShowScore(true);
-  }
-};
+    setTimeout(() => {
+      setShowFeedback(false);
+      setSelectedOption(null);
+      const nextQuestion = currentQuestion + 1;
+      if (nextQuestion < shuffledQuestions.length) {
+        setCurrentQuestion(nextQuestion);
+      } else {
+        setShowScore(true);
+      }
+    }, 2000); // 2-second delay to show feedback
+  };
 
-const handleDeposit = async () => {
-  if (!currentUser) {
-    alert('Please log in to deposit coins!');
-    return;
-  }
-  const coinsToDeposit = score * 1; // Total coins based on correct answers
-  try {
-    const userRef = doc(db, 'users', currentUser.uid);
-    await updateDoc(userRef, {
-      virtualBalance: increment(coinsToDeposit)
-    });
-    setVirtualBalance(virtualBalance + coinsToDeposit);
-    alert(`${coinsToDeposit} coins deposited to your virtual savings! Great job!`);
-  } catch (error) {
-    console.error('Deposit error:', error);
-    alert('Deposit failed—try again!');
-  }
-};
+  const handleDeposit = async () => {
+    if (!currentUser) {
+      alert('Please log in to deposit coins!');
+      return;
+    }
+    const coinsToDeposit = score * 1;
+    try {
+      const userRef = doc(db, 'users', currentUser.uid);
+      await updateDoc(userRef, {
+        virtualBalance: increment(coinsToDeposit)
+      });
+      setVirtualBalance(virtualBalance + coinsToDeposit);
+      alert(`${coinsToDeposit} coins deposited to your virtual savings! Great job!`);
+    } catch (error) {
+      console.error('Deposit error:', error);
+      alert('Deposit failed—try again!');
+    }
+  };
+
   if (!shuffledQuestions.length) return null;
 
   return (
-    <div>
+    <div style={{ padding: '20px', textAlign: 'center' }}>
       <h2>Financial Literacy Quiz</h2>
       {showScore ? (
         <div>
           <p>Your score: {score} out of {shuffledQuestions.length}</p>
-          <button onClick={handleDeposit}>Deposit {score * 1} Coins to Savings!</button>
+          <button 
+            style={{ 
+              backgroundColor: '#007bff', 
+              color: 'white', 
+              padding: '10px 20px', 
+              border: 'none', 
+              borderRadius: '5px', 
+              cursor: 'pointer' 
+            }} 
+            onClick={handleDeposit}
+          >
+            Deposit {score * 1} Coins to Savings!
+          </button>
         </div>
       ) : (
         <div>
           <p>Question {currentQuestion + 1}/{shuffledQuestions.length}: {shuffledQuestions[currentQuestion].question}</p>
-          <ul>
+          <ul style={{ listStyle: 'none', padding: 0 }}>
             {shuffledQuestions[currentQuestion].options.map((option, index) => (
-              <li key={index}>
-                <button onClick={() => handleAnswer(index)}>{option}</button>
+              <li key={index} style={{ margin: '10px 0' }}>
+                <button
+                  onClick={() => handleAnswer(index)}
+                  disabled={showFeedback}
+                  style={{
+                    backgroundColor: showFeedback
+                      ? index === shuffledQuestions[currentQuestion].answer
+                        ? '#28a745' // Green for correct answer
+                        : selectedOption === index
+                        ? '#dc3545' // Red for incorrect selected answer
+                        : '#007bff' // Default blue
+                      : '#007bff', // Default blue when no feedback
+                    color: 'white',
+                    padding: '10px 20px',
+                    border: 'none',
+                    borderRadius: '5px',
+                    cursor: showFeedback ? 'default' : 'pointer',
+                    width: '200px',
+                    textAlign: 'left',
+                  }}
+                >
+                  {showFeedback && index === shuffledQuestions[currentQuestion].answer
+                    ? `Correct! ${shuffledQuestions[currentQuestion].explanation}`
+                    : showFeedback && selectedOption === index && selectedOption !== shuffledQuestions[currentQuestion].answer
+                    ? `Incorrect! ${shuffledQuestions[currentQuestion].explanation}`
+                    : option}
+                </button>
               </li>
             ))}
           </ul>
-          {feedback && <p>{feedback}</p>}
         </div>
       )}
     </div>
