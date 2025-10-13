@@ -5,6 +5,8 @@ import { doc, getDoc } from 'firebase/firestore';
 import { auth, db } from '../firebase'; 
 import ada from "../Components/Img/ada.jpg"
 import milli from "../Components/Img/millichild.jpg"
+import jid from "../Components/Img/jid.jpg"
+
 
 function FullBooks() {
   const [currentUser, setCurrentUser] = useState(null);
@@ -13,6 +15,7 @@ function FullBooks() {
   const fullBooks = [
     { title: "Millionaire Child", id: "millionaire-child", image: milli },
     { title: "Ada's Dream Bicycle", id: "adas-dream-bicycle", image: ada },
+    { title: "Jide and the Game of Three Cups", id: "jide-and-the-game-of-three-cups", image: jid },
   ];
 
   // Load user data from Firebase
@@ -41,7 +44,6 @@ function FullBooks() {
       padding: 'clamp(20px, 5vw, 40px)', 
       maxWidth: 'min(90%, 1200px)', 
       margin: '0 auto', 
-      backgroundColor: '#fafafa', 
       minHeight: '100vh', 
       display: 'flex', 
       flexDirection: 'column', 

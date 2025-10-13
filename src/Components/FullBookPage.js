@@ -13,6 +13,11 @@ const books = {
     pdfUrl: process.env.PUBLIC_URL + "/assets/adas-dream-bicycle.pdf",
     image: process.env.PUBLIC_URL + "/assets/adas-dream-bicycle-cover.jpg",
   },
+    "jide-and-the-game-of-three-cups": {
+    title: "Jide and the Game of Three Cups",
+    pdfUrl: process.env.PUBLIC_URL + "/assets/jide-and-the-game-of-three-cups.pdf",
+    image: process.env.PUBLIC_URL + "/assets/jide-and-the-game-of-three-cups.jpg",
+  },
 };
 
 function FullBookPage() {

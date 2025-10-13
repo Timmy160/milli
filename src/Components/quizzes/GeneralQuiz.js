@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { doc, getDoc, updateDoc, increment } from 'firebase/firestore';
+import { doc, getDoc, setDoc, updateDoc, increment } from 'firebase/firestore';
 import { onAuthStateChanged } from 'firebase/auth';
 import { auth, db } from '../../firebase';
+import { Link } from 'react-router-dom';
 
 function shuffleOptions(options, answerIndex) {
   const arr = options.map((option, idx) => ({
@@ -163,9 +164,19 @@ function GeneralQuiz() {
 
   useEffect(() => {
     if (showScore) {
-      localStorage.setItem('quizScore', score);
+      const savedData = JSON.parse(localStorage.getItem("quizProgress")) || {
+        totalCorrect: 0,
+        totalQuestions: 0,
+      };
+
+      const updatedData = {
+        totalCorrect: savedData.totalCorrect + score,
+        totalQuestions: savedData.totalQuestions + shuffledQuestions.length,
+      };
+
+      localStorage.setItem("quizProgress", JSON.stringify(updatedData));
     }
-  }, [showScore, score]);
+  }, [showScore, score, shuffledQuestions]);
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (user) => {
@@ -178,20 +189,30 @@ function GeneralQuiz() {
     return unsubscribe;
   }, []);
 
-  const handleAnswer = (selectedIndex) => {
+  const handleAnswer = async (selectedIndex) => {
     if (!shuffledQuestions.length) return;
     setSelectedOption(selectedIndex);
     setShowFeedback(true);
+
     const isCorrect = selectedIndex === shuffledQuestions[currentQuestion].answer;
-    if (isCorrect) {
-      setScore(score + 1);
-      if (currentUser) {
-        const userRef = doc(db, 'users', currentUser.uid);
-        updateDoc(userRef, {
-          coins: increment(1)
-        });
+
+    if (isCorrect && currentUser) {
+      const userRef = doc(db, 'users', currentUser.uid);
+
+      try {
+        const userSnap = await getDoc(userRef);
+
+        if (!userSnap.exists()) {
+          await setDoc(userRef, { coins: 1, virtualBalance: 0 });
+        } else {
+          await updateDoc(userRef, { coins: increment(1) });
+        }
+      } catch (error) {
+        console.error('Error updating coins:', error);
       }
+      setScore(score + 1);
     }
+
     setTimeout(() => {
       setShowFeedback(false);
       setSelectedOption(null);
@@ -201,25 +222,34 @@ function GeneralQuiz() {
       } else {
         setShowScore(true);
       }
-    }, 2000); // 2-second delay to show feedback
+    }, 2000);
   };
 
+  // ✅ Updated handleDeposit: no alerts, always redirect to /home
   const handleDeposit = async () => {
     if (!currentUser) {
-      alert('Please log in to deposit coins!');
+      window.location.href = '/home';
       return;
     }
+
     const coinsToDeposit = score * 1;
+    const userRef = doc(db, 'users', currentUser.uid);
+
     try {
-      const userRef = doc(db, 'users', currentUser.uid);
-      await updateDoc(userRef, {
-        virtualBalance: increment(coinsToDeposit)
-      });
+      const userSnap = await getDoc(userRef);
+
+      if (!userSnap.exists()) {
+        await setDoc(userRef, { coins: 0, virtualBalance: coinsToDeposit });
+      } else {
+        await updateDoc(userRef, { virtualBalance: increment(coinsToDeposit) });
+      }
+
       setVirtualBalance(virtualBalance + coinsToDeposit);
-      alert(`${coinsToDeposit} coins deposited to your virtual savings! Great job!`);
     } catch (error) {
       console.error('Deposit error:', error);
-      alert('Deposit failed—try again!');
+      // silently fail
+    } finally {
+      window.location.href = '/home';
     }
   };
 
@@ -231,23 +261,30 @@ function GeneralQuiz() {
       {showScore ? (
         <div>
           <p>Your score: {score} out of {shuffledQuestions.length}</p>
-          <button 
-            style={{ 
-              backgroundColor: '#007bff', 
-              color: 'white', 
-              padding: '10px 20px', 
-              border: 'none', 
-              borderRadius: '5px', 
-              cursor: 'pointer' 
-            }} 
-            onClick={handleDeposit}
-          >
-            Deposit {score * 1} Coins to Savings!
-          </button>
+
+          <Link to="/home">
+            <button
+              style={{
+                backgroundColor: '#007bff',
+                color: 'white',
+                padding: '10px 20px',
+                border: 'none',
+                borderRadius: '5px',
+                cursor: 'pointer'
+              }}
+              onClick={handleDeposit}
+            >
+              Deposit {score * 1} Coins to Savings!
+            </button>
+          </Link>
+
         </div>
       ) : (
         <div>
-          <p>Question {currentQuestion + 1}/{shuffledQuestions.length}: {shuffledQuestions[currentQuestion].question}</p>
+          <p>
+            Question {currentQuestion + 1}/{shuffledQuestions.length}:{' '}
+            {shuffledQuestions[currentQuestion].question}
+          </p>
           <ul style={{ listStyle: 'none', padding: 0 }}>
             {shuffledQuestions[currentQuestion].options.map((option, index) => (
               <li key={index} style={{ margin: '10px 0' }}>
@@ -257,11 +294,11 @@ function GeneralQuiz() {
                   style={{
                     backgroundColor: showFeedback
                       ? index === shuffledQuestions[currentQuestion].answer
-                        ? '#28a745' // Green for correct answer
+                        ? '#28a745'
                         : selectedOption === index
-                        ? '#dc3545' // Red for incorrect selected answer
-                        : '#007bff' // Default blue
-                      : '#007bff', // Default blue when no feedback
+                        ? '#dc3545'
+                        : '#007bff'
+                      : '#007bff',
                     color: 'white',
                     padding: '10px 20px',
                     border: 'none',

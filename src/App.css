@@ -689,24 +689,21 @@ button:hover {
 /* Styles for viewing PDFs, including navigation and canvas adjustments. */
 /* Ensure PDF canvas fills screen and is centered */
 .react-pdf__Page__canvas {
-  width: 100vw !important;
-  max-width: 100% !important; /* Prevent overflow */
-  height: 100% !important; /* Scale height proportionally */
-  margin: 0 auto !important; /* Center horizontally */
-  display: block !important; /* Ensure proper centering */
+  height: auto !important;
+  margin: 0 auto !important;
+  display: block !important;
+  overflow-x: hidden;
+  overflow-y: scroll;
 }
 
-/* Show text layer for readability */
 .react-pdf__Page__textContent {
   color: black;
   font-size: 12px;
 }
 
-/* Hide annotations to avoid extra content */
 .react-pdf__Page__annotations {
   display: none;
 }
-
 /* ========================================= */
 /* MODAL STYLES */
 /* ========================================= */
@@ -847,11 +844,6 @@ button:hover {
     grid-template-columns: 1fr; /* Stack cards on mobile */
   }
 
-  .pdf-viewer {
-    padding: 10px; /* Smaller padding */
-    max-width: 100%; /* Full width on mobile */
-  }
-
   .book-page {
     margin: 10px; /* Less margin on mobile */
     padding: 15px;
@@ -898,9 +890,5 @@ button:hover {
 
   .cards-section {
     grid-template-columns: repeat(3, 1fr); /* Wider grid on desktop if needed */
-  }
-
-  .pdf-viewer {
-    max-width: 800px; /* Slightly wider on desktop */
   }
 }
