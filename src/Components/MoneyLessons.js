@@ -1,7 +1,14 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 
 function MoneyLessons() {
+  const [animate, setAnimate] = useState(false);
+
+  useEffect(() => {
+    // Trigger animation after component mounts
+    setTimeout(() => setAnimate(true), 100);
+  }, []);
+
   return (
     <div
       style={{
@@ -9,103 +16,113 @@ function MoneyLessons() {
         flexDirection: 'column',
         alignItems: 'center',
         minHeight: '100vh',
-        backgroundColor: '#f5faf6', // Same background as Home
-        padding: '20px 10px',
+        backgroundColor: '#f5faf6',
+        padding: '40px 20px',
         fontFamily: '"Poppins", "Inter", sans-serif',
         textAlign: 'center',
       }}
     >
+      {/* 🔙 Back Button */}
       <Link
         to="/home"
         style={{
-          backgroundColor: '#1a362b', // Dark green from Home's logout button
+          backgroundColor: '#1a362b',
           color: 'white',
           padding: '8px 16px',
           borderRadius: '8px',
           textDecoration: 'none',
           fontSize: '14px',
           fontWeight: '500',
-          marginBottom: '20px',
+          marginBottom: '30px',
           transition: 'background-color 0.2s ease-in-out',
         }}
         onMouseOver={(e) => (e.target.style.backgroundColor = '#2c5b45')}
         onMouseOut={(e) => (e.target.style.backgroundColor = '#1a362b')}
       >
-        Back
+        ← Back
       </Link>
+
+      {/* 📘 Page Title */}
       <h2
         style={{
-          backgroundColor: '#c8e6c9', // Light green from Home's money-lessons card
           color: '#1a362b',
-          padding: '10px 20px',
-          borderRadius: '10px',
-          fontSize: '20px',
-          fontWeight: '600',
-          marginBottom: '20px',
+          fontSize: '32px',
+          fontWeight: '700',
+          letterSpacing: '0.5px',
+          marginBottom: '40px',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          gap: '10px',
         }}
       >
-        Money Lessons
+        📘 Money Lessons
       </h2>
-      <Link
-        to="/lessons"
+
+      {/* 📚 Lessons Options */}
+      <div
         style={{
-          backgroundColor: '#bbdefb', // Light blue from Home's fun-quizzes card
-          color: '#1a362b',
-          padding: '12px 20px',
-          borderRadius: '10px',
-          textDecoration: 'none',
-          fontSize: '16px',
-          fontWeight: '500',
-          marginBottom: '15px',
-          display: 'block',
-          width: '200px',
-          transition: 'transform 0.2s ease',
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          gap: '20px',
+          transition: 'opacity 0.8s ease, transform 0.8s ease',
+          opacity: animate ? 1 : 0,
+          transform: animate ? 'translateY(0)' : 'translateY(20px)',
         }}
-        onMouseOver={(e) => (e.target.style.transform = 'translateY(-3px)')}
-        onMouseOut={(e) => (e.target.style.transform = 'translateY(0)')}
       >
-        General Lessons
-      </Link>
-      <Link
-        to="/books"
-        style={{
-          backgroundColor: '#ffe0b2', // Light orange from Home's progress-tracker card
-          color: '#1a362b',
-          padding: '12px 20px',
-          borderRadius: '10px',
-          textDecoration: 'none',
-          fontSize: '16px',
-          fontWeight: '500',
-          marginBottom: '15px',
-          display: 'block',
-          width: '200px',
-          transition: 'transform 0.2s ease',
-        }}
-        onMouseOver={(e) => (e.target.style.transform = 'translateY(-3px)')}
-        onMouseOut={(e) => (e.target.style.transform = 'translateY(0)')}
-      >
-        Books Summaries
-      </Link>
-      <Link
-        to="/full-books"
-        style={{
-          backgroundColor: '#e1bee7', // Light purple from Home's piggy-bank card
-          color: '#1a362b',
-          padding: '12px 20px',
-          borderRadius: '10px',
-          textDecoration: 'none',
-          fontSize: '16px',
-          fontWeight: '500',
-          marginBottom: '15px',
-          display: 'block',
-          width: '200px',
-          transition: 'transform 0.2s ease',
-        }}
-        onMouseOver={(e) => (e.target.style.transform = 'translateY(-3px)')}
-        onMouseOut={(e) => (e.target.style.transform = 'translateY(0)')}
-      >
-        Books
-      </Link>
+        <Link
+          to="/lessons"
+          style={{
+            backgroundColor: '#c8e6c9', // Light green
+            color: '#1a362b',
+            padding: '14px 22px',
+            borderRadius: '12px',
+            textDecoration: 'none',
+            fontSize: '17px',
+            fontWeight: '500',
+            width: '240px',
+            boxShadow: '0 3px 8px rgba(0,0,0,0.1)',
+            transition: 'transform 0.25s ease, box-shadow 0.25s ease',
+          }}
+          onMouseOver={(e) => {
+            e.target.style.transform = 'translateY(-3px)';
+            e.target.style.boxShadow = '0 5px 14px rgba(0,0,0,0.15)';
+          }}
+          onMouseOut={(e) => {
+            e.target.style.transform = 'translateY(0)';
+            e.target.style.boxShadow = '0 3px 8px rgba(0,0,0,0.1)';
+          }}
+        >
+          General Lessons
+        </Link>
+
+        <Link
+          to="/full-books"
+          style={{
+            backgroundColor: '#e1bee7', // Light purple
+            color: '#1a362b',
+            padding: '14px 22px',
+            borderRadius: '12px',
+            textDecoration: 'none',
+            fontSize: '17px',
+            fontWeight: '500',
+            width: '240px',
+            boxShadow: '0 3px 8px rgba(0,0,0,0.1)',
+            transition: 'transform 0.25s ease, box-shadow 0.25s ease',
+          }}
+          onMouseOver={(e) => {
+            e.target.style.transform = 'translateY(-3px)';
+            e.target.style.boxShadow = '0 5px 14px rgba(0,0,0,0.15)';
+          }}
+          onMouseOut={(e) => {
+            e.target.style.transform = 'translateY(0)';
+            e.target.style.boxShadow = '0 3px 8px rgba(0,0,0,0.1)';
+          }}
+        >
+          Books
+        </Link>
+      </div>
     </div>
   );
 }

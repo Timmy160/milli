@@ -17,6 +17,7 @@ import PiggyBank from './Components/PiggyBank';
 import RichestManInBabylon from './Components/RichestManInBabylon';
 import FullBooks from './Components/FullBooks';
 import FullBookPage from './Components/FullBookPage'; // Make sure this exists!
+import ProgressTracker from './Components/ProgressTracker';
 
 function App() {
   return (
@@ -41,6 +42,8 @@ function App() {
           <Route path="/full-books" element={<FullBooks />} />
           {/* Standalone book PDF viewer, no FullBooks list above */}
           <Route path="/full-books/:bookId" element={<FullBookPage />} />
+          <Route path="/progress-tracker" element={<ProgressTracker />} />
+
         </Routes>
       </div>
     </Router>
