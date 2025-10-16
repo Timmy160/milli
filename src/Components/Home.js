@@ -68,11 +68,11 @@ function Home() {
 
   return (
     <div className="home-container">
-      <div className="logo">
-        MC <span>Millionaire Child</span>
+       <div className="logo" style={{ fontStyle: 'italic' }}>
+        MC <span style={{ fontStyle: 'italic' }}>Millionaire Child</span>
       </div>
 
-      <h2 className="greeting">Hi there, {userName || "Money Star"}!</h2>
+      <h2 className="greeting" style={{ fontStyle: 'italic' }}>Hi {userName }, Money Star!</h2>
       <p className="sub-greeting">What would you like to learn today?</p>
 
       <div className="progress-section">
@@ -108,10 +108,11 @@ function Home() {
           <h4>Fun Quizzes</h4>
           <p>Test your money knowledge</p>
         </Link>
-        <Link to="/progress-tracker" className="card progress-tracker">
+        <Link className="card progress-tracker coming-soon">
           <div className="icon">🏆</div>
           <h4>Progress Tracker</h4>
           <p>See how much you’ve learned</p>
+         <p>Coming Soon...</p>
         </Link>
         <div className="card piggy-bank coming-soon">
           <div className="icon">💰</div>

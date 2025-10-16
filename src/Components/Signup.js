@@ -18,31 +18,46 @@ function Signup() {
       setError({ type: 'error', message: 'Passwords do not match!' });
       return;
     }
+
     try {
+      // Step 1: Create user with Firebase Authentication
       const userCredential = await createUserWithEmailAndPassword(auth, email, password);
       const user = userCredential.user;
-      console.log('🔥 Creating Firestore doc for UID:', user.uid, 'Username:', username);
-      await setDoc(doc(db, 'users', user.uid), {
-        username: username.trim(),
-        email: email.trim(),
-        coins: 0,
-        realSavings: 0,
-        rewardHistory: [],
-        lessonsCompleted: 0, // Initialize
-        quizScore: 0, // Initialize
-      });
-      console.log('✅ Firestore doc saved successfully for UID:', user.uid);
-      setError({ type: 'success', message: 'Signup successful! Please sign in.' });
-      setTimeout(() => navigate('/signin'), 2000);
+      console.log('🔥 User created in Firebase Auth:', user.uid, 'Email:', email);
+
+      // Step 2: Create Firestore document
+      try {
+        await setDoc(doc(db, 'users', user.uid), {
+          username: username.trim(),
+          email: email.trim(),
+          coins: 0,
+          realSavings: 0,
+          rewardHistory: [],
+          lessonsCompleted: 0,
+          quizScore: 0,
+        });
+        console.log('✅ Firestore document created for UID:', user.uid);
+      } catch (firestoreError) {
+        console.error('❌ Firestore error:', firestoreError.code, firestoreError.message);
+        throw new Error(`Firestore error: ${firestoreError.message}`);
+      }
+
+      // Step 3: Show success message and redirect
+      setError({ type: 'success', message: 'Signup successful! Redirecting to home...' });
+      setTimeout(() => {
+        console.log('🚀 Navigating to /home');
+        navigate('/home');
+      }, 2000);
     } catch (error) {
-      console.error('❌ Signup Firestore error:', error.code, error.message);
+      console.error('❌ Signup error:', error.code, error.message);
       let errorMessage = 'An error occurred. Please try again.';
       switch (error.code) {
         case 'auth/invalid-email':
           errorMessage = 'Please enter a valid email address.';
           break;
         case 'auth/email-already-in-use':
-          errorMessage = 'This email is already registered.';
+          errorMessage = 'This email is already registered. Try signing in.';
+          setTimeout(() => navigate('/signin'), 300);
           break;
         case 'auth/weak-password':
           errorMessage = 'Password is too weak. Use at least 6 characters.';
@@ -51,7 +66,7 @@ function Signup() {
           errorMessage = 'Too many attempts. Please try again later.';
           break;
         default:
-          errorMessage = 'Signup failed. Please check your details.';
+          errorMessage = `Signup failed: ${error.message}`;
       }
       setError({ type: 'error', message: errorMessage });
     }

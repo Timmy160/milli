@@ -79,7 +79,20 @@ function SignIn() {
             />
             <button type="submit" className="signin-button">Send Reset Email</button>
             <p>
-              <a href="#" onClick={() => setIsResetting(false)}>Back to Sign In</a>
+              <button
+                type="button"
+                onClick={() => setIsResetting(false)}
+                style={{
+                  background: 'none',
+                  border: 'none',
+                  color: '#007bff',
+                  textDecoration: 'underline',
+                  cursor: 'pointer',
+                  fontSize: 'inherit',
+                }}
+              >
+                Back to Sign In
+              </button>
             </p>
           </form>
         ) : (
@@ -100,7 +113,20 @@ function SignIn() {
             />
             <button type="submit" className="signin-button">Sign In</button>
             <p>
-              <a href="#" onClick={() => setIsResetting(true)}>Forgot Password?</a>
+              <button
+                type="button"
+                onClick={() => setIsResetting(true)}
+                style={{
+                  background: 'none',
+                  border: 'none',
+                  color: '#007bff',
+                  textDecoration: 'underline',
+                  cursor: 'pointer',
+                  fontSize: 'inherit',
+                }}
+              >
+                Forgot Password?
+              </button>
             </p>
           </form>
         )}

@@ -2,7 +2,7 @@
 /* GLOBAL STYLES */
 /* ========================================= */
 /* These are base styles applied to the entire app, including body, headings, links, lists, and buttons. */
-
+@import url('https://fonts.googleapis.com/css2?family=Dancing+Script:wght@400;700&display=swap');
 body {
   font-family: Arial, sans-serif; 
   text-align: center; 
@@ -172,6 +172,27 @@ input {
 /* ========================================= */
 /* Styles for book sections, lists, individual book pages, and navigation. */
 
+.logo {
+  font-family: 'Dancing Script', cursive;
+  font-style: italic; /* Optional, as Dancing Script is naturally cursive */
+  font-weight: 700; /* Bolder for emphasis */
+  font-size: 1.5rem; /* Adjust as needed */
+}
+
+.greeting {
+  font-family: 'Dancing Script', cursive;
+  font-style: italic;
+  font-weight: 700;
+  font-size: 2.4rem; /* Adjust as needed */
+}
+
+/* Optional: Style the span differently if needed */
+.logo span {
+  font-family: 'Dancing Script', cursive;
+  font-style: italic;
+}
+
+/*  */
 .book-section {
   border: 1px solid #ddd;
   padding: 10px;
@@ -325,7 +346,7 @@ input {
   transform: scale(1.05);
 }
 
-/* --- Buttons (Shared) --- */
+/* --- Buttons (Shared: Signup & Signin only) --- */
 .signup-button,
 .signin-button {
   display: flex;
@@ -340,10 +361,11 @@ input {
   font-weight: 600;
   cursor: pointer;
   transition: all 0.3s ease;
-  width: 100%; /* FIX: Full width to fit container */
-  max-width: 200px; /* FIX: Reduced max-width for mobile */
+  width: 100%; /* Full width to fit container */
+  max-width: 200px; /* Reduced max-width for mobile */
   margin-bottom: 12px;
-  box-sizing: border-box; /* FIX: Ensure padding is included in width */
+  box-sizing: border-box; /* Ensure padding is included in width */
+  background: none; /* Prevent interference on other buttons */
 }
 
 /* --- Signup (Green) --- */
@@ -365,6 +387,29 @@ input {
   transform: translateY(-3px);
   box-shadow: 0 6px 14px rgba(33, 150, 243, 0.3);
 }
+
+/* --- Password Toggle (Eye Icon Button) --- */
+.password-toggle {
+  all: unset; /* Reset inherited button styles */
+  cursor: pointer;
+  font-size: 18px;
+  color: #007bff;
+  transition: color 0.2s ease-in-out;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  position: absolute;
+  right: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+}
+
+.password-toggle:hover {
+  color: #0056b3;
+}
+
 
 /* --- Fade In Animation --- */
 @keyframes fadeIn {
@@ -891,4 +936,28 @@ button:hover {
   .cards-section {
     grid-template-columns: repeat(3, 1fr); /* Wider grid on desktop if needed */
   }
+}
+
+
+.password-field {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.password-field input {
+  width: 100%;
+  padding-right: 40px; /* space for icon */
+}
+
+.toggle-icon {
+  position: absolute;
+  right: 12px;
+  cursor: pointer;
+  color: #555;
+  transition: color 0.3s;
+}
+
+.toggle-icon:hover {
+  color: #000;
 }
