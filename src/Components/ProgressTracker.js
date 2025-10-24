@@ -117,7 +117,7 @@ function ProgressTracker() {
           style={{
             width: '95%',
             maxWidth: '700px',
-            minHeight: '150px', // Increased textarea height
+            minHeight: '150px',
             padding: '8px',
             borderRadius: '10px',
             border: '1px solid #94BD0A',
@@ -181,35 +181,38 @@ function ProgressTracker() {
               marginBottom: '12px',
               boxShadow: '0 2px 6px rgba(0,0,0,0.1)',
               display: 'flex',
-              justifyContent: 'space-between',
-              alignItems: 'center',
-              flexWrap: 'wrap',
+              flexDirection: 'column',
               gap: '10px',
               wordBreak: 'break-word',
               overflowWrap: 'break-word',
             }}
           >
-            <div
-              style={{
-                flex: '1 1 60%',
-                wordWrap: 'break-word',
-                textDecoration: goal.done ? 'line-through' : 'none',
-                color: goal.done ? 'gray' : '#1A362B',
-                fontSize: '14px',
-                overflowWrap: 'anywhere',
-              }}
-            >
-              {goal.text}
-            </div>
-
+            {/* Top Row: Goal text + checkbox */}
             <div
               style={{
                 display: 'flex',
-                gap: '8px',
+                justifyContent: 'space-between',
                 alignItems: 'center',
-                flexShrink: 0,
+                flexWrap: 'wrap',
+                gap: '8px',
               }}
             >
+              <div
+                style={{
+                  flex: '1 1 60%',
+                  wordWrap: 'break-word',
+                  textDecoration: goal.done ? 'line-through' : 'none',
+                  color: goal.done ? 'gray' : '#1A362B',
+                  fontSize: '14px',
+                  overflowWrap: 'anywhere',
+                  padding: '8px', // <-- Added padding here for better spacing
+                  backgroundColor: '#f9fdf9',
+                  borderRadius: '8px',
+                }}
+              >
+                {goal.text}
+              </div>
+
               <input
                 type="checkbox"
                 checked={goal.done}
@@ -217,47 +220,53 @@ function ProgressTracker() {
                 style={{
                   transform: 'scale(1.2)',
                   cursor: 'pointer',
+                  flexShrink: 0,
                 }}
               />
-              <div
+            </div>
+
+            {/* Bottom Row: Edit + Delete */}
+            <div
+              style={{
+                display: 'flex',
+                justifyContent: 'flex-end',
+                gap: '8px',
+                flexWrap: 'wrap',
+              }}
+            >
+              <button
+                onClick={() => handleEditGoal(index)}
                 style={{
-                  display: 'flex',
-                  gap: '2px', // Ensure buttons are side by side
+                  backgroundColor: '#94BD0A',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: '8px',
+                  padding: '8px 14px',
+                  fontSize: '13px',
+                  cursor: 'pointer',
+                  flex: '1 1 45%',
+                  minWidth: '80px',
                 }}
               >
-                <button
-                  onClick={() => handleEditGoal(index)}
-                  style={{
-                    backgroundColor: '#94BD0A',
-                    color: 'white',
-                    border: 'none',
-                    borderRadius: '8px',
-                    padding: '6px 12px', // Slightly larger padding for better appearance
-                    fontSize: '12px',
-                    cursor: 'pointer',
-                    flex: '1', // Ensure buttons take equal space
-                    minWidth: '60px', // Minimum width for consistency
-                  }}
-                >
-                  Edit
-                </button>
-                <button
-                  onClick={() => handleDeleteGoal(index)}
-                  style={{
-                    backgroundColor: '#d9534f',
-                    color: 'white',
-                    border: 'none',
-                    borderRadius: '8px',
-                    padding: '10px 12px', // Slightly larger padding for better appearance
-                    fontSize: '12px',
-                    cursor: 'pointer',
-                    flex: '1', // Ensure buttons take equal space
-                    minWidth: '60px', // Minimum width for consistency
-                  }}
-                >
-                  Delete
-                </button>
-              </div>
+                Edit
+              </button>
+
+              <button
+                onClick={() => handleDeleteGoal(index)}
+                style={{
+                  backgroundColor: '#d9534f',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: '8px',
+                  padding: '8px 14px',
+                  fontSize: '13px',
+                  cursor: 'pointer',
+                  flex: '1 1 45%',
+                  minWidth: '80px',
+                }}
+              >
+                Delete
+              </button>
             </div>
           </div>
         ))}
@@ -267,3 +276,4 @@ function ProgressTracker() {
 }
 
 export default ProgressTracker;
+

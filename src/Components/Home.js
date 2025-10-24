@@ -8,85 +8,86 @@ import { auth, db } from "../firebase";
 function Home() {
   const [quizScore, setQuizScore] = useState("0/0");
   const [quizPercentage, setQuizPercentage] = useState(0);
-  const [motivation, setMotivation] = useState("Let's get started, champ! 💪");
+  const [motivation, setMotivation] = useState("Let's get started, champ!");
   const [userName, setUserName] = useState("Money Star");
   const [isLogoutHovered, setIsLogoutHovered] = useState(false);
   const navigate = useNavigate();
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, async (user) => {
+    let mounted = true;
+    const unsub = onAuthStateChanged(auth, async (user) => {
       if (!user) {
-        console.log("No user authenticated, redirecting to signin");
         navigate("/signin");
         return;
       }
-      console.log("Authenticated user UID:", user.uid);
-      await fetchUserData(user.uid);
+      if (mounted) await fetchUserData(user.uid);
     });
-    return () => unsubscribe();
+    return () => {
+      mounted = false;
+      unsub();
+    };
   }, [navigate]);
 
   const fetchUserData = async (uid) => {
     try {
-      const userDocRef = doc(db, "users", uid);
-      const userDoc = await getDoc(userDocRef);
-      if (userDoc.exists()) {
-        const data = userDoc.data();
-        console.log("User data:", data);
-        const displayName =
+      const userRef = doc(db, "users", uid);
+      const snap = await getDoc(userRef);
+
+      if (snap.exists()) {
+        const data = snap.data();
+
+        // Set username
+        const name =
           data.username?.trim() ||
           data.name?.trim() ||
           data.displayName?.trim() ||
           auth.currentUser?.displayName?.trim() ||
           "Money Star";
-        setUserName(displayName);
+        setUserName(name);
+
+        // Cumulative quiz progress
+        const prog = data.quizProgress || { totalCorrect: 0, totalQuestions: 0 };
+        const { totalCorrect = 0, totalQuestions = 0 } = prog;
+
+        setQuizScore(`${totalCorrect}/${totalQuestions}`);
+
+        const percent =
+          totalQuestions > 0 ? Math.round((totalCorrect / totalQuestions) * 100) : 0;
+        setQuizPercentage(percent);
+        setMotivationMessage(totalCorrect, totalQuestions);
       } else {
-        console.log("No user document found for UID:", uid);
+        // New user – no document yet
         setUserName(auth.currentUser?.displayName?.trim() || "Money Star");
+        setQuizScore("0/0");
+        setQuizPercentage(0);
+        setMotivation("Let's get started, champ!");
       }
-    } catch (error) {
-      console.error("Error fetching user data:", error);
-      setUserName(auth.currentUser?.displayName?.trim() || "Money Star");
+    } catch (e) {
+      console.error("fetchUserData error:", e);
     }
   };
 
-  useEffect(() => {
-    const savedProgress = localStorage.getItem("quizProgress");
-    if (savedProgress) {
-      const { totalCorrect, totalQuestions } = JSON.parse(savedProgress);
-      const formattedScore = `${totalCorrect}/${totalQuestions}`;
-      setQuizScore(formattedScore);
-      if (totalQuestions > 0) {
-        const percentage = Math.round((totalCorrect / totalQuestions) * 100);
-        setQuizPercentage(percentage);
-        setMotivationMessage(totalCorrect, totalQuestions);
-      }
-    }
-  }, []);
-
   const setMotivationMessage = (correct, total) => {
-    const percent = total > 0 ? Math.round((correct / total) * 100) : 0;
-    setQuizPercentage(percent);
-
+    const pct = total > 0 ? Math.round((correct / total) * 100) : 0;
     if (total === 0) {
-      setMotivation("Let's get started, champ! 💪");
-    } else if (percent <= 30) {
-      setMotivation("Nice start, keep learning! 😅");
-    } else if (percent <= 70) {
-      setMotivation("You're improving fast! 😊");
-    } else if (percent < 100) {
-      setMotivation("Almost a pro! 😎");
+      setMotivation("Let's get started, champ!");
+    } else if (pct <= 30) {
+      setMotivation("Nice start, keep learning!");
+    } else if (pct <= 70) {
+      setMotivation("You're improving fast!");
+    } else if (pct < 100) {
+      setMotivation("Almost a pro!");
     } else {
-      setMotivation("Perfect score! You’re a true Money Star! 🏆");
+      setMotivation("Perfect score! You’re a true Money Star!");
     }
   };
 
   const getProgressColor = () => {
-    if (quizPercentage === 0) return "rgba(128, 128, 128, 0.1)";
-    if (quizPercentage <= 30) return "rgba(255, 99, 71, 0.15)";
-    if (quizPercentage <= 70) return "rgba(255, 193, 7, 0.15)";
-    if (quizPercentage < 100) return "rgba(40, 167, 69, 0.15)";
-    return "rgba(0, 123, 255, 0.15)";
+    if (quizPercentage === 0) return "rgba(128,128,128,0.1)";
+    if (quizPercentage <= 30) return "rgba(255,99,71,0.15)";
+    if (quizPercentage <= 70) return "rgba(255,193,7,0.15)";
+    if (quizPercentage < 100) return "rgba(40,167,69,0.15)";
+    return "rgba(0,123,255,0.15)";
   };
 
   const handleLogout = async () => {
@@ -109,10 +110,12 @@ function Home() {
         minHeight: "100vh",
       }}
     >
+      {/* Logo */}
       <div className="logo" style={{ fontStyle: "italic", fontWeight: "700" }}>
         MC <span style={{ color: "#28a745" }}>Millionaire Child</span>
       </div>
 
+      {/* Greeting */}
       <h2
         className="greeting"
         style={{
@@ -122,12 +125,13 @@ function Home() {
           fontWeight: "600",
         }}
       >
-        Hi {userName}! 🌟
+        Hi {userName}!
       </h2>
       <p className="sub-greeting" style={{ color: "#666", marginBottom: "25px" }}>
         What would you like to learn today?
       </p>
 
+      {/* Progress Section */}
       <motion.div
         className="progress-section"
         initial={{ opacity: 0, y: 10 }}
@@ -153,7 +157,7 @@ function Home() {
             gap: "8px",
           }}
         >
-          Your Progress 🎯
+          Your Progress
         </h3>
 
         <AnimatePresence mode="wait">
@@ -205,6 +209,7 @@ function Home() {
         </motion.p>
       </motion.div>
 
+      {/* ---------- YOUR ORIGINAL CARDS — UNCHANGED ---------- */}
       <div
         className="cards-section"
         style={{
@@ -225,7 +230,7 @@ function Home() {
             textDecoration: "none",
           }}
         >
-          <div style={{ fontSize: "30px" }}>📘</div>
+          <div style={{ fontSize: "30px" }}>Book</div>
           <h4>Money Lessons</h4>
           <p>Learn about saving, spending, and earning</p>
         </Link>
@@ -242,7 +247,7 @@ function Home() {
             textDecoration: "none",
           }}
         >
-          <div style={{ fontSize: "30px" }}>🎯</div>
+          <div style={{ fontSize: "30px" }}>Target</div>
           <h4>Fun Quizzes</h4>
           <p>Test your money knowledge</p>
         </Link>
@@ -259,7 +264,7 @@ function Home() {
             textDecoration: "none",
           }}
         >
-          <div style={{ fontSize: "30px" }}>🏆</div>
+          <div style={{ fontSize: "30px" }}>Trophy</div>
           <h4>Progress Tracker</h4>
           <p>Track your learning and achievements</p>
         </Link>
@@ -274,18 +279,18 @@ function Home() {
             textAlign: "center",
           }}
         >
-          <div style={{ fontSize: "30px" }}>💰</div>
+          <div style={{ fontSize: "30px" }}>Money Bag</div>
           <h4>Piggy Bank</h4>
           <p>Coming Soon...</p>
         </div>
       </div>
 
-      <div
-        style={{ marginTop: "40px", textAlign: "center", fontWeight: "500" }}
-      >
-        🪙 Keep saving, keep growing!
+      {/* Footer Message */}
+      <div style={{ marginTop: "40px", textAlign: "center", fontWeight: "500" }}>
+        Keep saving, keep growing!
       </div>
 
+      {/* Logout Button */}
       <button
         onClick={handleLogout}
         style={{
