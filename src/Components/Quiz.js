@@ -50,7 +50,7 @@ function Quiz() {
         <Link
           to="/general-quiz"
           style={{
-            backgroundColor: "#1A362B",
+            backgroundColor: "#94BD0A",
             color: "white",
             padding: "14px 0",
             borderRadius: "10px",
@@ -61,12 +61,7 @@ function Quiz() {
             boxShadow: "0 3px 8px rgba(0,0,0,0.15)",
             transition: "all 0.3s ease",
           }}
-          onMouseOver={(e) =>
-            (e.target.style.backgroundColor = "#94BD0A")
-          }
-          onMouseOut={(e) =>
-            (e.target.style.backgroundColor = "#4caf50")
-          }
+          
         >
            General Quiz
         </Link>
@@ -74,7 +69,7 @@ function Quiz() {
         <Link
           to="/jide-and-the-game-of-three-cups"
           style={{
-            backgroundColor: "#1A362B",
+            backgroundColor: "#94BD0A",
             color: "white",
             padding: "14px 0",
             borderRadius: "10px",
@@ -85,12 +80,7 @@ function Quiz() {
             boxShadow: "0 3px 8px rgba(0,0,0,0.15)",
             transition: "all 0.3s ease",
           }}
-          onMouseOver={(e) =>
-            (e.target.style.backgroundColor = "#94BD0A")
-          }
-          onMouseOut={(e) =>
-            (e.target.style.backgroundColor = "#4caf50")
-          }
+          
         >
            Jide and the game of three cups Quiz
         </Link>
@@ -98,7 +88,7 @@ function Quiz() {
          <Link
           to="/adas-dream-bicycle"
           style={{
-            backgroundColor: "#1A362B",
+            backgroundColor: "#94BD0A",
             color: "white",
             padding: "14px 0",
             borderRadius: "10px",
@@ -109,12 +99,7 @@ function Quiz() {
             boxShadow: "0 3px 8px rgba(0,0,0,0.15)",
             transition: "all 0.3s ease",
           }}
-          onMouseOver={(e) =>
-            (e.target.style.backgroundColor = "#94BD0A")
-          }
-          onMouseOut={(e) =>
-            (e.target.style.backgroundColor = "#4caf50")
-          }
+          
         >
            ADA's dream bicycle Quiz
         </Link>
@@ -122,7 +107,7 @@ function Quiz() {
           <Link
           to="/millionaire-child-quiz"
           style={{
-            backgroundColor: "#1A362B",
+            backgroundColor: "#94BD0A",
             color: "white",
             padding: "14px 0",
             borderRadius: "10px",
@@ -133,12 +118,7 @@ function Quiz() {
             boxShadow: "0 3px 8px rgba(0,0,0,0.15)",
             transition: "all 0.3s ease",
           }}
-          onMouseOver={(e) =>
-            (e.target.style.backgroundColor = "#94BD0A")
-          }
-          onMouseOut={(e) =>
-            (e.target.style.backgroundColor = "#4caf50")
-          }
+          
         >
            Millionaire Child Quiz
         </Link>
