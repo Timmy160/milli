@@ -100,9 +100,6 @@ input {
 /* ========================================= */
 /* These are styles from the default Create React App template, for the main App component and logo animation. */
 
-.App {
-  text-align: center;
-}
 
 .App-logo {
   height: 40vmin;
@@ -157,15 +154,69 @@ input {
 }
 
 /* Make responsive */
-@media (max-width: 600px) {
-  .sidebar {
-    float: none;
-    width: 100%;
+/* Base layout */
+body {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+.container {
+  display: flex;
+  flex-wrap: wrap;
+  min-height: 100vh;
+  padding: 10px; /* small global padding */
+}
+
+/* Sidebar */
+.sidebar {
+  flex: 1 1 250px;
+  max-width: 250px;
+  background-color: #1A362B; /* example dark green */
+  color: white;
+  padding: 15px;
+  border-radius: 10px;
+}
+
+/* Content */
+.content {
+   flex: 1 1 calc(100% - 250px);
+  padding: 15px;
+  margin-left: 10px;
+  border-radius: 10px;
+  background-color: #f9f9f9;
+}
+
+/* Responsive for smaller screens */
+@media (max-width: 1024px) {
+  .container {
+    flex-direction: column;
+    padding: 8px;
   }
+
+  .sidebar,
   .content {
+    max-width: 100%;
     margin-left: 0;
+    border-radius: 8px;
+  }
+
+  .content {
+    margin-top: 10px;
   }
 }
+
+@media (max-width: 600px) {
+  .container {
+    padding: 6px;
+  }
+
+  .sidebar,
+  .content {
+    padding: 10px;
+  }
+}
+
 
 /* ========================================= */
 /* BOOK RELATED STYLES */

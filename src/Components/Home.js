@@ -35,8 +35,6 @@ function Home() {
 
       if (snap.exists()) {
         const data = snap.data();
-
-        // Set username
         const name =
           data.username?.trim() ||
           data.name?.trim() ||
@@ -45,18 +43,15 @@ function Home() {
           "Money Star";
         setUserName(name);
 
-        // Cumulative quiz progress
         const prog = data.quizProgress || { totalCorrect: 0, totalQuestions: 0 };
         const { totalCorrect = 0, totalQuestions = 0 } = prog;
 
         setQuizScore(`${totalCorrect}/${totalQuestions}`);
-
         const percent =
           totalQuestions > 0 ? Math.round((totalCorrect / totalQuestions) * 100) : 0;
         setQuizPercentage(percent);
         setMotivationMessage(totalCorrect, totalQuestions);
       } else {
-        // New user – no document yet
         setUserName(auth.currentUser?.displayName?.trim() || "Money Star");
         setQuizScore("0/0");
         setQuizPercentage(0);
@@ -106,12 +101,20 @@ function Home() {
         fontFamily: "'Poppins', sans-serif",
         padding: "20px",
         color: "#222",
-        background: "#f9f9f9",
+        background: "linear-gradient(180deg, #fefefe, #f6fff9)",
         minHeight: "100vh",
       }}
     >
       {/* Logo */}
-      <div className="logo" style={{ fontStyle: "italic", fontWeight: "700" }}>
+      <div
+        className="logo"
+        style={{
+          fontStyle: "italic",
+          fontWeight: "700",
+          fontSize: "22px",
+          textAlign: "center",
+        }}
+      >
         MC <span style={{ color: "#28a745" }}>Millionaire Child</span>
       </div>
 
@@ -120,14 +123,24 @@ function Home() {
         className="greeting"
         style={{
           fontStyle: "italic",
-          marginTop: "20px",
+          marginTop: "25px",
           color: "#333",
-          fontWeight: "600",
+          fontWeight: "700",
+          textAlign: "center",
+          fontSize: "24px",
         }}
       >
-        Hi {userName}!
+        Hi {userName}! 👋
       </h2>
-      <p className="sub-greeting" style={{ color: "#666", marginBottom: "25px" }}>
+      <p
+        className="sub-greeting"
+        style={{
+          color: "#555",
+          marginBottom: "25px",
+          textAlign: "center",
+          fontSize: "16px",
+        }}
+      >
         What would you like to learn today?
       </p>
 
@@ -140,9 +153,9 @@ function Home() {
         style={{
           background: getProgressColor(),
           padding: "20px",
-          borderRadius: "16px",
-          boxShadow: "0 4px 10px rgba(0,0,0,0.08)",
-          marginBottom: "30px",
+          borderRadius: "20px",
+          boxShadow: "0 6px 12px rgba(0,0,0,0.08)",
+          marginBottom: "35px",
           textAlign: "center",
         }}
       >
@@ -151,13 +164,10 @@ function Home() {
             fontWeight: "600",
             color: "#222",
             marginBottom: "10px",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            gap: "8px",
+            fontSize: "20px",
           }}
         >
-          Your Progress
+          🌟 Your Progress
         </h3>
 
         <AnimatePresence mode="wait">
@@ -171,7 +181,7 @@ function Home() {
             }}
             exit={{ opacity: 0, scale: 0.8 }}
             style={{
-              fontSize: "22px",
+              fontSize: "26px",
               fontWeight: "700",
               color:
                 quizPercentage === 100
@@ -183,10 +193,10 @@ function Home() {
                   : "#dc3545",
               background: "#fff",
               display: "inline-block",
-              padding: "10px 20px",
-              borderRadius: "12px",
+              padding: "10px 24px",
+              borderRadius: "14px",
               marginTop: "10px",
-              boxShadow: "0 2px 5px rgba(0,0,0,0.1)",
+              boxShadow: "0 3px 8px rgba(0,0,0,0.1)",
             }}
           >
             {quizScore}
@@ -200,7 +210,7 @@ function Home() {
           transition={{ duration: 0.4 }}
           style={{
             marginTop: "10px",
-            color: "#555",
+            color: "#444",
             fontWeight: "500",
             fontSize: "15px",
           }}
@@ -209,85 +219,96 @@ function Home() {
         </motion.p>
       </motion.div>
 
-      {/* ---------- YOUR ORIGINAL CARDS — UNCHANGED ---------- */}
+      {/* Cards Section */}
       <div
         className="cards-section"
         style={{
           display: "grid",
           gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))",
-          gap: "20px",
+          gap: "25px",
         }}
       >
-        <Link
-          to="/money-lessons"
-          style={{
-            backgroundColor: "#f0f9f9",
-            border: "2px solid #17a2b8",
-            color: "#0c5460",
-            borderRadius: "16px",
-            padding: "20px",
-            textAlign: "center",
-            textDecoration: "none",
-          }}
-        >
-          <div style={{ fontSize: "30px" }}>Book</div>
-          <h4>Money Lessons</h4>
-          <p>Learn about saving, spending, and earning</p>
-        </Link>
-
-        <Link
-          to="/quiz"
-          style={{
-            backgroundColor: "#fff0f6",
-            border: "2px solid #e83e8c",
-            color: "#6f1d4f",
-            borderRadius: "16px",
-            padding: "20px",
-            textAlign: "center",
-            textDecoration: "none",
-          }}
-        >
-          <div style={{ fontSize: "30px" }}>Target</div>
-          <h4>Fun Quizzes</h4>
-          <p>Test your money knowledge</p>
-        </Link>
-
-        <Link
-          to="/progress-tracker"
-          style={{
-            backgroundColor: "#fdf6e3",
-            border: "2px solid #f0ad4e",
-            color: "#8a6d3b",
-            borderRadius: "16px",
-            padding: "20px",
-            textAlign: "center",
-            textDecoration: "none",
-          }}
-        >
-          <div style={{ fontSize: "30px" }}>Trophy</div>
-          <h4>Progress Tracker</h4>
-          <p>Track your learning and achievements</p>
-        </Link>
-
-        <div
-          style={{
-            backgroundColor: "#eef6ff",
-            border: "2px solid #007bff",
-            color: "#004085",
-            borderRadius: "16px",
-            padding: "20px",
-            textAlign: "center",
-          }}
-        >
-          <div style={{ fontSize: "30px" }}>Money Bag</div>
-          <h4>Piggy Bank</h4>
-          <p>Coming Soon...</p>
-        </div>
+        {[
+          {
+            emoji: "📖",
+            title: "Money Lessons",
+            text: "Learn about saving, spending, and earning",
+            color1: "#d9f7f7",
+            color2: "#b2ebf2",
+            link: "/money-lessons",
+          },
+          {
+            emoji: "🎯",
+            title: "Fun Quizzes",
+            text: "Test your money knowledge",
+            color1: "#ffe1f0",
+            color2: "#fbc8d4",
+            link: "/quiz",
+          },
+          {
+            emoji: "🏆",
+            title: "Progress Tracker",
+            text: "Track your learning achievements",
+            color1: "#fff3cd",
+            color2: "#ffeaa7",
+            link: "/progress-tracker",
+          },
+          {
+            emoji: "💵",
+            title: "Piggy Bank",
+            text: "Coming Soon...",
+            color1: "#e0f0ff",
+            color2: "#b3daff",
+            link: "#",
+          },
+        ].map((card, i) => (
+          <motion.div key={i} whileHover={{ scale: 1.07 }} whileTap={{ scale: 0.97 }}>
+            <Link
+              to={card.link}
+              style={{
+                background: `linear-gradient(135deg, ${card.color1}, ${card.color2})`,
+                borderRadius: "20px",
+                padding: "24px 18px",
+                textAlign: "center",
+                textDecoration: "none",
+                display: "block",
+                color: "#333",
+                boxShadow: "0 6px 15px rgba(0,0,0,0.1)",
+                transition: "all 0.3s ease",
+              }}
+            >
+              <motion.div
+                initial={{ scale: 0 }}
+                animate={{ scale: 1 }}
+                transition={{ type: "spring", stiffness: 300 }}
+                style={{
+                  fontSize: "42px",
+                  marginBottom: "10px",
+                  textShadow: "1px 2px 4px rgba(0,0,0,0.2)",
+                }}
+              >
+                {card.emoji}
+              </motion.div>
+              <h4 style={{ fontWeight: "700", marginBottom: "8px", fontSize: "18px" }}>
+                {card.title}
+              </h4>
+              <p style={{ fontSize: "14px", color: "#444" }}>{card.text}</p>
+            </Link>
+          </motion.div>
+        ))}
       </div>
 
       {/* Footer Message */}
-      <div style={{ marginTop: "40px", textAlign: "center", fontWeight: "500" }}>
-        Keep saving, keep growing!
+      <div
+        style={{
+          marginTop: "50px",
+          textAlign: "center",
+          fontWeight: "600",
+          fontSize: "16px",
+          color: "#333",
+        }}
+      >
+        🌱 Keep saving, keep growing!
       </div>
 
       {/* Logout Button */}
@@ -296,20 +317,21 @@ function Home() {
         style={{
           display: "block",
           margin: "30px auto",
-          backgroundColor: isLogoutHovered ? "#c82333" : "#dc3545",
+          backgroundColor: isLogoutHovered ? "#ff4d4d" : "#ff6b6b",
           color: "white",
-          padding: "12px 24px",
+          padding: "12px 30px",
           border: "none",
-          borderRadius: "8px",
+          borderRadius: "12px",
           fontSize: "16px",
           fontWeight: "600",
           cursor: "pointer",
+          boxShadow: "0 4px 10px rgba(255,107,107,0.4)",
           transition: "0.3s ease",
         }}
         onMouseEnter={() => setIsLogoutHovered(true)}
         onMouseLeave={() => setIsLogoutHovered(false)}
       >
-        Logout
+        🚪 Logout
       </button>
     </div>
   );
