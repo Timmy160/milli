@@ -13,7 +13,7 @@ function FullBooks() {
   const [userUnlockedBooks, setUserUnlockedBooks] = useState([]);
   const [loadingBuy, setLoadingBuy] = useState(false);
   const [error, setError] = useState(null);
-  const [dataLoaded, setDataLoaded] = useState(false); // NEW: prevent flash
+  const [dataLoaded, setDataLoaded] = useState(false);
 
   const fullBooks = [
     { title: "Millionaire Child", id: "millionaire-child", image: milli, priceNaira: 2000, locked: true },
@@ -29,7 +29,6 @@ function FullBooks() {
           const userDoc = await getDoc(doc(db, 'users', user.uid));
           const data = userDoc.data();
           
-          // Create doc if missing (Google login)
           if (!userDoc.exists()) {
             await setDoc(doc(db, 'users', user.uid), {
               email: user.email,
@@ -46,26 +45,40 @@ function FullBooks() {
         setCurrentUser(null);
         setUserUnlockedBooks([]);
       }
-      setDataLoaded(true); // Mark ready
+      setDataLoaded(true);
     });
     return unsubscribe;
   }, []);
 
   const isUnlocked = (book) => {
-    if (!dataLoaded) return false; // Prevent flash
+    if (!dataLoaded) return false;
     if (!book.locked) return true;
     return userUnlockedBooks.includes(book.id);
   };
 
-  const PAYSTACK_PUBLIC_KEY = "pk_test_947be8bc1ba0f12165db9945b7b493d554c6032a";
+  // YOUR REAL PAYSTACK TEST KEY
+  const PAYSTACK_PUBLIC_KEY = "pk_test_b495cc102bb0b10426b92165e3ae161cf2021af6";
 
   const loadPaystackScript = () => {
     return new Promise((resolve, reject) => {
-      if (window.PaystackPop) return resolve(window.PaystackPop);
+      if (window.PaystackPop) {
+        console.log("Paystack already loaded");
+        resolve();
+        return;
+      }
+
+      console.log("Loading Paystack v2...");
       const script = document.createElement('script');
-      script.src = "https://js.paystack.co/v1/inline.js";
-      script.onload = () => resolve(window.PaystackPop);
-      script.onerror = () => reject(new Error('Paystack script failed to load'));
+      script.src = 'https://js.paystack.co/v2/inline.js';
+      script.async = true;
+      script.onload = () => {
+        console.log("Paystack v2 loaded!");
+        resolve();
+      };
+      script.onerror = () => {
+        console.error("Script failed");
+        reject(new Error('Failed to load Paystack'));
+      };
       document.body.appendChild(script);
     });
   };
@@ -80,33 +93,44 @@ function FullBooks() {
 
     try {
       await loadPaystackScript();
-      const reference = `lb_${book.id}_${Date.now()}`;
+      const paystack = new window.PaystackPop();
 
-      const handler = window.PaystackPop.setup({
+      paystack.newTransaction({
         key: PAYSTACK_PUBLIC_KEY,
         email: currentUser.email,
         amount: book.priceNaira * 100,
         currency: "NGN",
-        ref: reference,
+        ref: `lb_${book.id}_${Date.now()}`,
         metadata: { book_id: book.id, user_id: currentUser.uid },
-        onClose: () => setLoadingBuy(false),
-        callback: async () => {
+
+        onSuccess: async (transaction) => {
+          console.log("Payment Success:", transaction);
           try {
             const newList = Array.from(new Set([...userUnlockedBooks, book.id]));
             await setDoc(doc(db, 'users', currentUser.uid), { unlockedBooks: newList }, { merge: true });
             setUserUnlockedBooks(newList);
-            setLoadingBuy(false);
             alert(`Success! "${book.title}" is now unlocked!`);
           } catch (err) {
             console.error("Unlock failed:", err);
-            setError("Payment succeeded but unlock failed.");
-            setLoadingBuy(false);
+            setError("Payment OK, but unlock failed. Contact support.");
           }
+          setLoadingBuy(false);
+        },
+
+        onCancel: () => {
+          setLoadingBuy(false);
+        },
+
+        onError: (err) => {
+          console.error("Paystack error:", err);
+          setError(`Payment failed: ${err.message || "Try again"}`);
+          setLoadingBuy(false);
         }
       });
-      handler.openIframe();
+
     } catch (err) {
-      setError("Failed to start payment.");
+      console.error("Setup error:", err);
+      setError(`Error: ${err.message || "Check internet"}`);
       setLoadingBuy(false);
     }
   };
