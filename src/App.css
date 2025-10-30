@@ -788,10 +788,9 @@ button:hover {
   height: auto !important;
   margin: 0 auto !important;
   display: block !important;
-  overflow-x: hidden;
-  overflow-y: scroll;
+  overflow: visible !important;  
+  max-width: 100%;
 }
-
 .react-pdf__Page__textContent {
   color: black;
   font-size: 12px;

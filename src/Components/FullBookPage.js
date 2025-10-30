@@ -58,7 +58,8 @@ function FullBookPage() {
         display: "flex",
         flexDirection: "column",
         alignItems: "center",
-        overflow: "hidden",
+        overflowX: "hidden",
+        overflowY: "auto",
         boxSizing: "border-box",
         backgroundColor: "#f5f5f5",
       }}
@@ -67,7 +68,6 @@ function FullBookPage() {
         style={{
           width: "100%",
           flex: 1,
-          overflowY: "hidden",
           overflowX: "hidden",
           display: "flex",
           justifyContent: "center",

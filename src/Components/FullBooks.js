@@ -1,4 +1,4 @@
-// src/components/FullBooks.jsx
+ 
 import React, { useState, useEffect } from 'react';
 import { Link, Outlet } from 'react-router-dom';
 import { onAuthStateChanged } from 'firebase/auth';
@@ -13,7 +13,7 @@ function FullBooks() {
   const [userUnlockedBooks, setUserUnlockedBooks] = useState([]);
   const [loadingBuy, setLoadingBuy] = useState(false);
   const [error, setError] = useState(null);
-  const [dataLoaded, setDataLoaded] = useState(false); // NEW: prevent flash
+  const [dataLoaded, setDataLoaded] = useState(false); 
 
   const fullBooks = [
     { title: "Millionaire Child", id: "millionaire-child", image: milli, priceNaira: 2000, locked: true },
@@ -29,7 +29,7 @@ function FullBooks() {
           const userDoc = await getDoc(doc(db, 'users', user.uid));
           const data = userDoc.data();
           
-          // Create doc if missing (Google login)
+          
           if (!userDoc.exists()) {
             await setDoc(doc(db, 'users', user.uid), {
               email: user.email,
@@ -46,13 +46,13 @@ function FullBooks() {
         setCurrentUser(null);
         setUserUnlockedBooks([]);
       }
-      setDataLoaded(true); // Mark ready
+      setDataLoaded(true);  
     });
     return unsubscribe;
   }, []);
 
   const isUnlocked = (book) => {
-    if (!dataLoaded) return false; // Prevent flash
+    if (!dataLoaded) return false;  
     if (!book.locked) return true;
     return userUnlockedBooks.includes(book.id);
   };

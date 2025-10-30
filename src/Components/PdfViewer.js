@@ -77,49 +77,48 @@ function PdfViewer({ pdfUrl }) {
   return (
     <div
       style={{
-        width: "100vw",
-        height: "100vh",
+        width: "100%",
+        minHeight: "100vh",
         display: "flex",
         flexDirection: "column",
         alignItems: "center",
-        justifyContent: "middle", // ⬅️ Pushed PDF + buttons downward, not centered vertically
-        paddingTop: "0px", // ⬅️ Top padding from screen edge
-        paddingBottom: "-10px",
+        overflowY: "auto", // ✅ allow vertical scroll
+        backgroundColor: "#f8f8f8",
+        padding: "20px 0",
       }}
     >
       <div
         style={{
-          flexGrow: 1,
           display: "flex",
-          alignItems: "center",
           justifyContent: "center",
-          padding: "20px", // ⬅️ You can increase this for more padding around the PDF
-          boxSizing: "border-box",
+          width: "100%",
+          marginBottom: "20px",
         }}
       >
         <Document file={pdfUrl} onLoadSuccess={onDocumentLoadSuccess}>
           <Page
             pageNumber={pageNumber}
-            width={window.innerWidth * 0.8} // ⬅️ Adjust width (0.9 = 90% of screen)
+            width={Math.min(window.innerWidth * 0.9, 900)} // ✅ limits width for laptop screens
             renderTextLayer={false}
             renderAnnotationLayer={false}
           />
         </Document>
       </div>
 
-      {/* ⬇️ BUTTONS NOW BELOW THE PDF */}
+      {/* Page navigation buttons */}
       <div
         style={{
-          marginTop: "-50px", // space between PDF and buttons
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
           gap: "8px",
           backgroundColor: "rgba(255,255,255,0.95)",
-          padding: "5px 8px",
+          padding: "8px 12px",
           borderRadius: "8px",
           boxShadow: "0 2px 8px rgba(0,0,0,0.2)",
-          fontSize: "clamp(0.8rem, 3vw, 1rem)",
+          position: "sticky",
+          bottom: "10px",
+          zIndex: 10,
         }}
       >
         <button
