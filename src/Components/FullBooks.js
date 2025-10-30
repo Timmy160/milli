@@ -15,7 +15,7 @@ function FullBooks() {
   const [dataLoaded, setDataLoaded] = useState(false);
 
   const fullBooks = [
-    { title: "Millionaire Child", id: "millionaire-child", image: milli, priceNaira: 2000, locked: true },
+    { title: "Millionaire Child", id: "millionaire-child", image: milli, priceNaira: 1999, locked: true },
     { title: "Ada's Dream Bicycle", id: "adas-dream-bicycle", image: ada, locked: false },
     { title: "Jide and the Game of Three Cups", id: "jide-and-the-game-of-three-cups", image: jid, locked: false },
   ];
