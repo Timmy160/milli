@@ -218,7 +218,7 @@ function FullBooks() {
                     pointerEvents: 'none',
                     whiteSpace: 'nowrap',
                   }}>
-                    Pay ₦2,000 to Unlock
+                    Pay ₦1,999 to Unlock
                   </div>
                 )}
                 <img
