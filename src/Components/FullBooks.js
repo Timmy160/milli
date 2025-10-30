@@ -56,7 +56,7 @@ function FullBooks() {
   };
 
   // YOUR REAL PAYSTACK TEST KEY
-  const PAYSTACK_PUBLIC_KEY = "pk_test_b495cc102bb0b10426b92165e3ae161cf2021af6";
+  const PAYSTACK_PUBLIC_KEY = "pk_live_0f9a6185f7febb9241d371545508426f7a6393d6";
 
   const loadPaystackScript = () => {
     return new Promise((resolve, reject) => {
