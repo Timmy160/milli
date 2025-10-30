@@ -1,4 +1,3 @@
- 
 import React, { useState, useEffect } from 'react';
 import { Link, Outlet } from 'react-router-dom';
 import { onAuthStateChanged } from 'firebase/auth';
@@ -13,7 +12,7 @@ function FullBooks() {
   const [userUnlockedBooks, setUserUnlockedBooks] = useState([]);
   const [loadingBuy, setLoadingBuy] = useState(false);
   const [error, setError] = useState(null);
-  const [dataLoaded, setDataLoaded] = useState(false); 
+  const [dataLoaded, setDataLoaded] = useState(false);
 
   const fullBooks = [
     { title: "Millionaire Child", id: "millionaire-child", image: milli, priceNaira: 2000, locked: true },
@@ -28,8 +27,7 @@ function FullBooks() {
         try {
           const userDoc = await getDoc(doc(db, 'users', user.uid));
           const data = userDoc.data();
-          
-          
+
           if (!userDoc.exists()) {
             await setDoc(doc(db, 'users', user.uid), {
               email: user.email,
@@ -46,26 +44,40 @@ function FullBooks() {
         setCurrentUser(null);
         setUserUnlockedBooks([]);
       }
-      setDataLoaded(true);  
+      setDataLoaded(true);
     });
     return unsubscribe;
   }, []);
 
   const isUnlocked = (book) => {
-    if (!dataLoaded) return false;  
+    if (!dataLoaded) return false;
     if (!book.locked) return true;
     return userUnlockedBooks.includes(book.id);
   };
 
-  const PAYSTACK_PUBLIC_KEY = "pk_test_947be8bc1ba0f12165db9945b7b493d554c6032a";
+  // YOUR REAL PAYSTACK TEST KEY
+  const PAYSTACK_PUBLIC_KEY = "pk_test_b495cc102bb0b10426b92165e3ae161cf2021af6";
 
   const loadPaystackScript = () => {
     return new Promise((resolve, reject) => {
-      if (window.PaystackPop) return resolve(window.PaystackPop);
+      if (window.PaystackPop) {
+        console.log("Paystack already loaded");
+        resolve();
+        return;
+      }
+
+      console.log("Loading Paystack v2...");
       const script = document.createElement('script');
-      script.src = "https://js.paystack.co/v1/inline.js";
-      script.onload = () => resolve(window.PaystackPop);
-      script.onerror = () => reject(new Error('Paystack script failed to load'));
+      script.src = 'https://js.paystack.co/v2/inline.js';
+      script.async = true;
+      script.onload = () => {
+        console.log("Paystack v2 loaded!");
+        resolve();
+      };
+      script.onerror = () => {
+        console.error("Script failed");
+        reject(new Error('Failed to load Paystack'));
+      };
       document.body.appendChild(script);
     });
   };
@@ -80,33 +92,44 @@ function FullBooks() {
 
     try {
       await loadPaystackScript();
-      const reference = `lb_${book.id}_${Date.now()}`;
+      const paystack = new window.PaystackPop();
 
-      const handler = window.PaystackPop.setup({
+      paystack.newTransaction({
         key: PAYSTACK_PUBLIC_KEY,
         email: currentUser.email,
         amount: book.priceNaira * 100,
         currency: "NGN",
-        ref: reference,
+        ref: `lb_${book.id}_${Date.now()}`,
         metadata: { book_id: book.id, user_id: currentUser.uid },
-        onClose: () => setLoadingBuy(false),
-        callback: async () => {
+
+        onSuccess: async (transaction) => {
+          console.log("Payment Success:", transaction);
           try {
             const newList = Array.from(new Set([...userUnlockedBooks, book.id]));
             await setDoc(doc(db, 'users', currentUser.uid), { unlockedBooks: newList }, { merge: true });
             setUserUnlockedBooks(newList);
-            setLoadingBuy(false);
             alert(`Success! "${book.title}" is now unlocked!`);
           } catch (err) {
             console.error("Unlock failed:", err);
-            setError("Payment succeeded but unlock failed.");
-            setLoadingBuy(false);
+            setError("Payment OK, but unlock failed. Contact support.");
           }
+          setLoadingBuy(false);
+        },
+
+        onCancel: () => {
+          setLoadingBuy(false);
+        },
+
+        onError: (err) => {
+          console.error("Paystack error:", err);
+          setError(`Payment failed: ${err.message || "Try again"}`);
+          setLoadingBuy(false);
         }
       });
-      handler.openIframe();
+
     } catch (err) {
-      setError("Failed to start payment.");
+      console.error("Setup error:", err);
+      setError(`Error: ${err.message || "Check internet"}`);
       setLoadingBuy(false);
     }
   };
@@ -116,21 +139,21 @@ function FullBooks() {
   }
 
   return (
-    <div style={{ 
-      padding: 'clamp(20px, 5vw, 40px)', 
-      maxWidth: 'min(90%, 1200px)', 
-      margin: '0 auto', 
-      minHeight: '100vh', 
-      display: 'flex', 
-      flexDirection: 'column', 
+    <div style={{
+      padding: 'clamp(20px, 5vw, 40px)',
+      maxWidth: 'min(90%, 1200px)',
+      margin: '0 auto',
+      minHeight: '100vh',
+      display: 'flex',
+      flexDirection: 'column',
       alignItems: 'center',
       background: 'linear-gradient(135deg, #FFF5CC 0%, #FFD6E8 100%)'
     }}>
-      <h2 style={{ 
-        textAlign: 'center', 
-        marginBottom: 'clamp(20px, 4vw, 40px)', 
-        fontSize: 'clamp(1.8rem, 5vw, 2.5rem)', 
-        color: '#3a3a3a', 
+      <h2 style={{
+        textAlign: 'center',
+        marginBottom: 'clamp(20px, 4vw, 40px)',
+        fontSize: 'clamp(1.8rem, 5vw, 2.5rem)',
+        color: '#3a3a3a',
         fontWeight: '700',
         letterSpacing: '0.5px'
       }}>
@@ -138,12 +161,12 @@ function FullBooks() {
       </h2>
 
       {error && (
-        <div style={{ 
-          color: 'crimson', 
-          background: '#ffebee', 
-          padding: '12px 20px', 
-          borderRadius: '12px', 
-          marginBottom: '20px', 
+        <div style={{
+          color: 'crimson',
+          background: '#ffebee',
+          padding: '12px 20px',
+          borderRadius: '12px',
+          marginBottom: '20px',
           fontWeight: '500',
           maxWidth: '600px',
           textAlign: 'center'
@@ -152,25 +175,25 @@ function FullBooks() {
         </div>
       )}
 
-      <ul style={{ 
-        listStyle: 'none', 
-        padding: 0, 
-        display: 'grid', 
-        gridTemplateColumns: 'repeat(auto-fit, minmax(min(280px, 100%), 1fr))', 
-        gap: 'clamp(20px, 3vw, 30px)', 
-        width: '100%' 
+      <ul style={{
+        listStyle: 'none',
+        padding: 0,
+        display: 'grid',
+        gridTemplateColumns: 'repeat(auto-fit, minmax(min(280px, 100%), 1fr))',
+        gap: 'clamp(20px, 3vw, 30px)',
+        width: '100%'
       }}>
         {fullBooks.map((book) => {
           const unlocked = isUnlocked(book);
 
           return (
-            <li 
-              key={book.id} 
-              style={{ 
+            <li
+              key={book.id}
+              style={{
                 background: 'linear-gradient(145deg, #FFFFFF, #FAFAFA)',
-                borderRadius: '20px', 
-                boxShadow: '0 6px 18px rgba(0, 0, 0, 0.08)', 
-                overflow: 'hidden', 
+                borderRadius: '20px',
+                boxShadow: '0 6px 18px rgba(0, 0, 0, 0.08)',
+                overflow: 'hidden',
                 position: 'relative',
                 transform: 'scale(1)',
                 transition: 'all 0.3s ease',
@@ -198,14 +221,14 @@ function FullBooks() {
                     Pay ₦2,000 to Unlock
                   </div>
                 )}
-                <img 
-                  src={book.image} 
-                  alt={`${book.title} cover`} 
-                  style={{ 
-                    width: '100%', 
+                <img
+                  src={book.image}
+                  alt={`${book.title} cover`}
+                  style={{
+                    width: '100%',
                     height: '280px',
-                    objectFit: 'contain', 
-                    padding: '12px', 
+                    objectFit: 'contain',
+                    padding: '12px',
                     display: 'block',
                     filter: book.locked && !unlocked ? 'blur(5px) brightness(0.7)' : 'none',
                     transition: 'filter 0.3s ease'
@@ -213,9 +236,9 @@ function FullBooks() {
                 />
               </div>
 
-              <div style={{ 
-                textAlign: 'center', 
-                padding: '20px', 
+              <div style={{
+                textAlign: 'center',
+                padding: '20px',
                 background: 'linear-gradient(90deg, #E3FDFD, #FFE2E2, #FFF5BA)',
                 borderTop: '2px solid #eee'
               }}>
@@ -230,9 +253,9 @@ function FullBooks() {
                 </h3>
 
                 {unlocked ? (
-                  <Link 
-                    to={`/full-books/${book.id}`} 
-                    style={{ 
+                  <Link
+                    to={`/full-books/${book.id}`}
+                    style={{
                       display: 'inline-block',
                       padding: '12px 24px',
                       background: 'linear-gradient(90deg, #42A5F5, #478ED1)',
