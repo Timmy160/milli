@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Link, Outlet } from 'react-router-dom';
 import { onAuthStateChanged } from 'firebase/auth';
-import { doc, getDoc, setDoc } from 'firebase/firestore';
+import { doc, getDoc, updateDoc, setDoc } from 'firebase/firestore';
 import { auth, db } from '../firebase';
 import ada from "../Components/Img/ada.jpg";
 import milli from "../Components/Img/millichild.jpg";
@@ -10,32 +10,34 @@ import jid from "../Components/Img/jid.jpg";
 function FullBooks() {
   const [currentUser, setCurrentUser] = useState(null);
   const [userUnlockedBooks, setUserUnlockedBooks] = useState([]);
-  const [loadingBuy, setLoadingBuy] = useState(false);
+  const [loadingBooks, setLoadingBooks] = useState(new Set());   // <-- per-book loading
   const [error, setError] = useState(null);
   const [dataLoaded, setDataLoaded] = useState(false);
 
   const fullBooks = [
     { title: "Millionaire Child", id: "millionaire-child", image: milli, priceNaira: 1999, locked: true },
-    { title: "Ada's Dream Bicycle", id: "adas-dream-bicycle", image: ada, locked: false },
-    { title: "Jide and the Game of Three Cups", id: "jide-and-the-game-of-three-cups", image: jid, locked: false },
+    { title: "Ada's Dream Bicycle", id: "adas-dream-bicycle", image: ada, priceNaira: 999, locked: true },
+    { title: "Jide and the Game of Three Cups", id: "jide-and-the-game-of-three-cups", image: jid, priceNaira: 999, locked: true },
   ];
 
+  /* ------------------------------------------------------------------ */
+  /*  Auth + Firestore user data                                         */
+  /* ------------------------------------------------------------------ */
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
       if (user) {
         setCurrentUser(user);
         try {
-          const userDoc = await getDoc(doc(db, 'users', user.uid));
-          const data = userDoc.data();
+          const userRef = doc(db, 'users', user.uid);
+          const userSnap = await getDoc(userRef);
 
-          if (!userDoc.exists()) {
-            await setDoc(doc(db, 'users', user.uid), {
-              email: user.email,
-              unlockedBooks: []
-            }, { merge: true });
+          if (!userSnap.exists()) {
+            await setDoc(userRef, { email: user.email, unlockedBooks: [] });
+            setUserUnlockedBooks([]);
+          } else {
+            const data = userSnap.data();
+            setUserUnlockedBooks(data?.unlockedBooks || []);
           }
-
-          setUserUnlockedBooks(data?.unlockedBooks || []);
         } catch (err) {
           console.error('Error loading user data:', err);
           setUserUnlockedBooks([]);
@@ -46,49 +48,49 @@ function FullBooks() {
       }
       setDataLoaded(true);
     });
+
     return unsubscribe;
   }, []);
 
-  const isUnlocked = (book) => {
+  const isUnlocked = (bookId) => {
     if (!dataLoaded) return false;
-    if (!book.locked) return true;
-    return userUnlockedBooks.includes(book.id);
+    return userUnlockedBooks.includes(bookId);
   };
 
-  // YOUR REAL PAYSTACK TEST KEY
+  /* ------------------------------------------------------------------ */
+  /*  Paystack helpers                                                   */
+  /* ------------------------------------------------------------------ */
   const PAYSTACK_PUBLIC_KEY = "pk_live_0f9a6185f7febb9241d371545508426f7a6393d6";
 
   const loadPaystackScript = () => {
     return new Promise((resolve, reject) => {
-      if (window.PaystackPop) {
-        console.log("Paystack already loaded");
-        resolve();
-        return;
-      }
+      if (window.PaystackPop) return resolve();
 
-      console.log("Loading Paystack v2...");
       const script = document.createElement('script');
       script.src = 'https://js.paystack.co/v2/inline.js';
       script.async = true;
-      script.onload = () => {
-        console.log("Paystack v2 loaded!");
-        resolve();
-      };
-      script.onerror = () => {
-        console.error("Script failed");
-        reject(new Error('Failed to load Paystack'));
-      };
+      script.onload = resolve;
+      script.onerror = () => reject(new Error('Failed to load Paystack'));
       document.body.appendChild(script);
     });
   };
 
+  /* ------------------------------------------------------------------ */
+  /*  Buy handler – works for ONE book at a time                         */
+  /* ------------------------------------------------------------------ */
   const handleBuy = async (book) => {
     if (!currentUser) {
       setError('Please sign in to purchase this book.');
       return;
     }
+    if (isUnlocked(book.id)) {
+      setError(`You’ve already unlocked "${book.title}".`);
+      return;
+    }
+    if (loadingBooks.has(book.id)) return;               // prevent double-click
+
     setError(null);
-    setLoadingBuy(true);
+    setLoadingBooks(prev => new Set(prev).add(book.id));
 
     try {
       await loadPaystackScript();
@@ -97,43 +99,59 @@ function FullBooks() {
       paystack.newTransaction({
         key: PAYSTACK_PUBLIC_KEY,
         email: currentUser.email,
-        amount: book.priceNaira * 100,
+        amount: book.priceNaira * 100,      // Paystack expects kobo
         currency: "NGN",
         ref: `lb_${book.id}_${Date.now()}`,
         metadata: { book_id: book.id, user_id: currentUser.uid },
 
+        // --------------------------------------------------------------
+        //  Success → unlock in Firestore
+        // --------------------------------------------------------------
         onSuccess: async (transaction) => {
           console.log("Payment Success:", transaction);
           try {
-            const newList = Array.from(new Set([...userUnlockedBooks, book.id]));
-            await setDoc(doc(db, 'users', currentUser.uid), { unlockedBooks: newList }, { merge: true });
+            const newList = [...new Set([...userUnlockedBooks, book.id])];
+            const userRef = doc(db, 'users', currentUser.uid);
+            await updateDoc(userRef, { unlockedBooks: newList });
             setUserUnlockedBooks(newList);
             alert(`Success! "${book.title}" is now unlocked!`);
           } catch (err) {
             console.error("Unlock failed:", err);
             setError("Payment OK, but unlock failed. Contact support.");
           }
-          setLoadingBuy(false);
         },
 
-        onCancel: () => {
-          setLoadingBuy(false);
-        },
-
+        // --------------------------------------------------------------
+        //  Cancel / Error / Close → always clear loading state
+        // --------------------------------------------------------------
+        onCancel: () => console.log("Payment cancelled"),
         onError: (err) => {
           console.error("Paystack error:", err);
           setError(`Payment failed: ${err.message || "Try again"}`);
-          setLoadingBuy(false);
-        }
+        },
+        onClose: () => {
+          // Popup closed (any reason) → stop spinner for this book
+          setLoadingBooks(prev => {
+            const next = new Set(prev);
+            next.delete(book.id);
+            return next;
+          });
+        },
       });
-
     } catch (err) {
       console.error("Setup error:", err);
-      setError(`Error: ${err.message || "Check internet"}`);
-      setLoadingBuy(false);
+      setError(`Error: ${err.message || "Check internet connection"}`);
+      setLoadingBooks(prev => {
+        const next = new Set(prev);
+        next.delete(book.id);
+        return next;
+      });
     }
   };
 
+  /* ------------------------------------------------------------------ */
+  /*  Render                                                            */
+  /* ------------------------------------------------------------------ */
   if (!dataLoaded) {
     return <div style={{ padding: '40px', textAlign: 'center' }}>Loading books...</div>;
   }
@@ -184,7 +202,8 @@ function FullBooks() {
         width: '100%'
       }}>
         {fullBooks.map((book) => {
-          const unlocked = isUnlocked(book);
+          const unlocked = isUnlocked(book.id);
+          const isLoading = loadingBooks.has(book.id);
 
           return (
             <li
@@ -192,7 +211,7 @@ function FullBooks() {
               style={{
                 background: 'linear-gradient(145deg, #FFFFFF, #FAFAFA)',
                 borderRadius: '20px',
-                boxShadow: '0 6px 18px rgba(0, 0, 0, 0.08)',
+                boxShadow: '0 6px 18px rgba(0,0,0,0.08)',
                 overflow: 'hidden',
                 position: 'relative',
                 transform: 'scale(1)',
@@ -201,6 +220,28 @@ function FullBooks() {
               onMouseEnter={e => e.currentTarget.style.transform = 'scale(1.03)'}
               onMouseLeave={e => e.currentTarget.style.transform = 'scale(1)'}
             >
+              {/* Paid badge */}
+              {unlocked && (
+                <div style={{
+                  position: 'absolute',
+                  top: '10px',
+                  left: '10px',
+                  background: '#00C853',
+                  color: '#fff',
+                  padding: '6px 12px',
+                  borderRadius: '9999px',
+                  fontSize: '0.8rem',
+                  fontWeight: 'bold',
+                  zIndex: 5,
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '5px',
+                  boxShadow: '0 2px 6px rgba(0,0,0,0.2)'
+                }}>
+                  Paid
+                </div>
+              )}
+
               <div style={{ position: 'relative', background: '#f0f0f0' }}>
                 {book.locked && !unlocked && (
                   <div style={{
@@ -218,7 +259,7 @@ function FullBooks() {
                     pointerEvents: 'none',
                     whiteSpace: 'nowrap',
                   }}>
-                    Pay ₦1,999 to Unlock
+                    Pay ₦{book.priceNaira} to Unlock
                   </div>
                 )}
                 <img
@@ -269,25 +310,29 @@ function FullBooks() {
                   >
                     Read Story
                   </Link>
-                ) : book.locked ? (
+                ) : (
                   <button
                     onClick={() => handleBuy(book)}
-                    disabled={loadingBuy}
+                    disabled={isLoading}
                     style={{
                       padding: '12px 24px',
-                      background: loadingBuy ? '#ccc' : 'linear-gradient(90deg, #00C853, #B2FF59)',
+                      background: isLoading
+                        ? '#ccc'
+                        : 'linear-gradient(90deg, #00C853, #B2FF59)',
                       color: '#fff',
                       border: 'none',
                       borderRadius: '12px',
-                      cursor: loadingBuy ? 'not-allowed' : 'pointer',
+                      cursor: isLoading ? 'not-allowed' : 'pointer',
                       fontWeight: '700',
                       fontSize: '1rem',
-                      minWidth: '160px'
+                      minWidth: '160px',
+                      opacity: isLoading ? 0.7 : 1,
+                      transition: 'all 0.2s ease'
                     }}
                   >
-                    {loadingBuy ? 'Processing...' : `Pay ₦${book.priceNaira}`}
+                    {isLoading ? 'Processing...' : `Pay ₦${book.priceNaira}`}
                   </button>
-                ) : null}
+                )}
               </div>
             </li>
           );
