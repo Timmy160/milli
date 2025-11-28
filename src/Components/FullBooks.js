@@ -1,53 +1,52 @@
 import React, { useState, useEffect } from 'react';
 import { Link, Outlet } from 'react-router-dom';
 import { onAuthStateChanged } from 'firebase/auth';
-import { doc, getDoc, updateDoc, setDoc, collection, query, where, getDocs } from 'firebase/firestore';
+import { doc, getDoc, updateDoc, setDoc } from 'firebase/firestore';
 import { auth, db } from '../firebase';
 import ada from "../Components/Img/ada.jpg";
 import milli from "../Components/Img/millichild.jpg";
 import jid from "../Components/Img/jid.jpg";
+import psychology from "../Components/Img/psychology.jpg";
 
 function FullBooks() {
   const [currentUser, setCurrentUser] = useState(null);
   const [userUnlockedBooks, setUserUnlockedBooks] = useState([]);
   const [loadingBooks, setLoadingBooks] = useState(new Set());
-  const [error, setError] = useState(null);
+  const [couponCode, setCouponCode] = useState({});
+  const [toast, setToast] = useState({ message: "", type: "" });
   const [dataLoaded, setDataLoaded] = useState(false);
 
-  const [couponCode, setCouponCode] = useState({});
-  const [couponErrors, setCouponErrors] = useState({});
-  const [couponLoading, setCouponLoading] = useState({});
-
-  // Toast state
-  const [toast, setToast] = useState({ message: "", type: "" }); // success or error
-
   const fullBooks = [
-    { title: "Millionaire Child", id: "millionaire-child", image: milli, priceNaira: 1999, locked: true, allowCoupon: true },
-    { title: "Ada's Dream Bicycle", id: "adas-dream-bicycle", image: ada, priceNaira: 999, locked: true, allowCoupon: true },
-    { title: "Jide and the Game of Three Cups", id: "jide-and-the-game-of-three-cups", image: jid, priceNaira: 999, locked: true, allowCoupon: false },
+    { title: "Millionaire Child", id: "millionaire-child", image: milli, priceNaira: 1999, allowCoupon: true },
+    { title: "Ada's Dream Bicycle", id: "adas-dream-bicycle", image: ada, priceNaira: 999, allowCoupon: true },
+    { title: "Jide and the Game of Three Cups", id: "jide-and-the-game-of-three-cups", image: jid, priceNaira: 999, allowCoupon: false },
+    {
+      title: "The Psychology And Spiritual Of Making 1 Million Naira As A Student In Due Time",
+      id: "the-psychology",
+      image: psychology,
+      priceNaira: 15000,
+      discountedPrice: 5000,
+      couponCode: "124DC",        // ← NEW COUPON (case-insensitive)
+      allowCoupon: true,
+    },
   ];
 
-  // Toast function
   const showToast = (message, type = "success") => {
     setToast({ message, type });
-    setTimeout(() => setToast({ message: "", type: "" }), 4000);
+    setTimeout(() => setToast({ message: "", type: "" }), 5000);
   };
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
       if (user) {
         setCurrentUser(user);
-        try {
-          const userRef = doc(db, 'users', user.uid);
-          const userSnap = await getDoc(userRef);
-          if (!userSnap.exists()) {
-            await setDoc(userRef, { email: user.email, unlockedBooks: [] });
-            setUserUnlockedBooks([]);
-          } else {
-            setUserUnlockedBooks(userSnap.data()?.unlockedBooks || []);
-          }
-        } catch (err) {
-          console.error('Error loading user data:', err);
+        const userRef = doc(db, 'users', user.uid);
+        const snap = await getDoc(userRef);
+        if (!snap.exists()) {
+          await setDoc(userRef, { email: user.email, unlockedBooks: [] });
+          setUserUnlockedBooks([]);
+        } else {
+          setUserUnlockedBooks(snap.data()?.unlockedBooks || []);
         }
       } else {
         setCurrentUser(null);
@@ -69,119 +68,52 @@ function FullBooks() {
       script.src = 'https://js.paystack.co/v2/inline.js';
       script.async = true;
       script.onload = resolve;
-      script.onerror = () => reject(new Error('Failed to load Paystack'));
+      script.onerror = () => reject(new Error('Paystack failed'));
       document.body.appendChild(script);
     });
   };
 
   const handleBuy = async (book) => {
-    if (!currentUser) return setError('Please sign in to purchase.');
-    if (isUnlocked(book.id)) return setError(`You already own "${book.title}".`);
+    if (!currentUser) return showToast("Please sign in to buy", "error");
+    if (isUnlocked(book.id)) return showToast("You already own this book", "error");
     if (loadingBooks.has(book.id)) return;
 
-    setError(null);
     setLoadingBooks(prev => new Set(prev).add(book.id));
 
     try {
       await loadPaystackScript();
       const paystack = new window.PaystackPop();
+
+      const entered = (couponCode[book.id] || "").trim().toUpperCase();
+      const validCoupon = book.couponCode && entered === book.couponCode.toUpperCase();
+      const amount = validCoupon && book.discountedPrice ? book.discountedPrice : book.priceNaira;
+
       paystack.newTransaction({
         key: PAYSTACK_PUBLIC_KEY,
         email: currentUser.email,
-        amount: book.priceNaira * 100,
+        amount: amount * 100,
         currency: "NGN",
         ref: `lb_${book.id}_${Date.now()}`,
-        metadata: { book_id: book.id, user_id: currentUser.uid },
+        metadata: { book_id: book.id, user_id: currentUser.uid, coupon: validCoupon ? entered : null },
         onSuccess: async () => {
           const newList = [...new Set([...userUnlockedBooks, book.id])];
           await updateDoc(doc(db, 'users', currentUser.uid), { unlockedBooks: newList });
           setUserUnlockedBooks(newList);
-          showToast(`"${book.title}" unlocked successfully!`, "success");
+          showToast(
+            validCoupon
+              ? `Coupon applied! Unlocked for ₦${book.discountedPrice.toLocaleString()}`
+              : `"${book.title}" unlocked!`,
+            "success"
+          );
+          if (validCoupon) setCouponCode(prev => ({ ...prev, [book.id]: "" }));
         },
-        onCancel: () => console.log("Payment cancelled"),
+        onCancel: () => console.log("Cancelled"),
         onError: () => showToast("Payment failed", "error"),
         onClose: () => setLoadingBooks(prev => { const s = new Set(prev); s.delete(book.id); return s; }),
       });
     } catch (err) {
-      showToast("Payment error. Try again.", "error");
+      showToast("Payment error", "error");
       setLoadingBooks(prev => { const s = new Set(prev); s.delete(book.id); return s; });
-    }
-  };
-
-  const applyCoupon = async (book) => {
-    const rawCode = couponCode[book.id]?.trim();
-    if (!rawCode) {
-      setCouponErrors(prev => ({ ...prev, [book.id]: "Enter a coupon code" }));
-      return;
-    }
-    const code = rawCode.toUpperCase();
-
-    if (!currentUser) {
-      setCouponErrors(prev => ({ ...prev, [book.id]: "Please sign in first" }));
-      return;
-    }
-    if (isUnlocked(book.id)) {
-      setCouponErrors(prev => ({ ...prev, [book.id]: "Already unlocked!" }));
-      return;
-    }
-
-    setCouponErrors(prev => ({ ...prev, [book.id]: null }));
-    setCouponLoading(prev => ({ ...prev, [book.id]: true }));
-
-    try {
-      let couponDoc = null;
-      let couponData = null;
-
-      const docRef = doc(db, "coupons", code);
-      const docSnap = await getDoc(docRef);
-      if (docSnap.exists()) {
-        couponDoc = docSnap;
-        couponData = docSnap.data();
-      } else {
-        const q = query(collection(db, "coupons"), where("code", "==", code));
-        const querySnap = await getDocs(q);
-        if (!querySnap.empty) {
-          couponDoc = querySnap.docs[0];
-          couponData = couponDoc.data();
-        }
-      }
-
-      if (!couponDoc || !couponData || couponData.active === false) {
-        showToast("Invalid or inactive coupon", "error");
-        return;
-      }
-
-      const isUniversal = !couponData.bookId || couponData.bookId === "";
-      const isUnlimited = couponData.unlimited === true;
-
-      if (!isUniversal && couponData.bookId !== book.id) {
-        showToast("This coupon is for a different book", "error");
-        return;
-      }
-
-      const usedBy = couponData.usedBy || [];
-      if (!isUniversal && !isUnlimited && usedBy.includes(currentUser.uid)) {
-        showToast("You've already used this coupon", "error");
-        return;
-      }
-
-      // SUCCESS
-      const newList = [...new Set([...userUnlockedBooks, book.id])];
-      await updateDoc(doc(db, 'users', currentUser.uid), { unlockedBooks: newList });
-      setUserUnlockedBooks(newList);
-
-      if (!isUniversal && !isUnlimited) {
-        await updateDoc(couponDoc.ref, { usedBy: [...usedBy, currentUser.uid] });
-      }
-
-      setCouponCode(prev => ({ ...prev, [book.id]: "" }));
-      showToast(`LAGOSMUMS applied! "${book.title}" is now FREE!`, "success");
-
-    } catch (err) {
-      console.error("Coupon error:", err);
-      showToast("Something went wrong. Try again.", "error");
-    } finally {
-      setCouponLoading(prev => ({ ...prev, [book.id]: false }));
     }
   };
 
@@ -194,18 +126,9 @@ function FullBooks() {
         maxWidth: 'min(90%, 1200px)',
         margin: '0 auto',
         minHeight: '100vh',
-        display: 'flex',
-        flexDirection: 'column',
-        alignItems: 'center',
         background: 'linear-gradient(135deg, #FFF5CC 0%, #FFD6E8 100%)'
       }}>
         <h2 style={{ textAlign: 'center', marginBottom: '40px', fontSize: '2.2rem' }}>Full Books</h2>
-
-        {error && (
-          <div style={{ color: 'crimson', background: '#ffebee', padding: '15px 20px', borderRadius: '12px', marginBottom: '20px', maxWidth: '600px' }}>
-            {error}
-          </div>
-        )}
 
         <ul style={{
           listStyle: 'none',
@@ -218,7 +141,9 @@ function FullBooks() {
           {fullBooks.map((book) => {
             const unlocked = isUnlocked(book.id);
             const isLoading = loadingBooks.has(book.id);
-            const isCouponLoading = couponLoading[book.id];
+            const entered = (couponCode[book.id] || "").trim().toUpperCase();
+            const validCoupon = book.couponCode && entered === book.couponCode.toUpperCase();
+            const displayPrice = validCoupon && book.discountedPrice ? book.discountedPrice : book.priceNaira;
 
             return (
               <li key={book.id} style={{
@@ -232,46 +157,44 @@ function FullBooks() {
                   <div style={{
                     position: 'absolute', top: '10px', left: '10px',
                     background: '#00C853', color: '#fff', padding: '6px 14px',
-                    borderRadius: '9999px', fontWeight: 'bold', zIndex: 10
+                    borderRadius: '9999px', fontWeight: 'bold', zIndex: 10, fontSize: '0.9rem'
                   }}>
                     UNLOCKED
                   </div>
                 )}
 
-                <div style={{ position: 'relative' }}>
-                  <img
-                    src={book.image}
-                    alt={book.title}
-                    style={{
-                      width: '100%',
-                      height: '280px',
-                      objectFit: 'contain',
-                      padding: '12px',
-                      filter: !unlocked ? 'blur(6px) brightness(0.6)' : 'none',
-                      transition: 'filter 0.3s'
-                    }}
-                  />
-                  {!unlocked && (
-                    <div style={{
-                      position: 'absolute', top: '50%', left: '50%',
-                      transform: 'translate(-50%, -50%)',
-                      background: 'rgba(0,0,0,0.8)', color: '#fff',
-                      padding: '16px 32px', borderRadius: '16px',
-                      fontWeight: 'bold', fontSize: '1.1rem'
-                    }}>
-                      ₦{book.priceNaira} to Unlock
-                    </div>
-                  )}
-                </div>
+                <img
+                  src={book.image}
+                  alt={book.title}
+                  style={{
+                    width: '100%',
+                    height: '280px',
+                    objectFit: 'contain',
+                    padding: '12px',
+                    background: '#fafafa'
+                  }}
+                />
 
                 <div style={{ padding: '20px', textAlign: 'center' }}>
+                  {!unlocked && (
+                    <div style={{
+                      fontSize: '1.5rem',
+                      fontWeight: 'bold',
+                      color: validCoupon ? '#8B00FF' : '#d32f2f',
+                      marginBottom: '10px'
+                    }}>
+                      ₦{displayPrice.toLocaleString()}
+                      {validCoupon && <span style={{ color: '#00C853', fontSize: '1rem' }}> (Coupon Applied!)</span>}
+                    </div>
+                  )}
+
                   <h3 style={{ margin: '0 0 16px', fontSize: '1.3rem' }}>{book.title}</h3>
 
                   {!unlocked && book.allowCoupon && (
                     <div style={{ marginBottom: '16px' }}>
                       <input
                         type="text"
-                        placeholder="Have a coupon code? (LAGOSMUMS)"
+                        placeholder="Have a coupon? (e.g. 124DC)"
                         value={couponCode[book.id] || ""}
                         onChange={(e) => setCouponCode(prev => ({ ...prev, [book.id]: e.target.value }))}
                         style={{
@@ -282,29 +205,8 @@ function FullBooks() {
                           fontSize: '1rem',
                           marginBottom: '8px'
                         }}
-                        onKeyPress={(e) => e.key === 'Enter' && applyCoupon(book)}
+                        onKeyPress={(e) => e.key === 'Enter' && handleBuy(book)}
                       />
-                      <button
-                        onClick={() => applyCoupon(book)}
-                        disabled={isCouponLoading}
-                        style={{
-                          width: '100%',
-                          padding: '12px',
-                          borderRadius: '10px',
-                          background: isCouponLoading ? '#999' : '#1E88E5',
-                          color: '#fff',
-                          border: 'none',
-                          fontWeight: '600',
-                          cursor: 'pointer'
-                        }}
-                      >
-                        {isCouponLoading ? 'Checking...' : 'Apply Coupon'}
-                      </button>
-                      {couponErrors[book.id] && (
-                        <div style={{ color: '#d32f2f', fontSize: '0.9rem', marginTop: '8px' }}>
-                          {couponErrors[book.id]}
-                        </div>
-                      )}
                     </div>
                   )}
 
@@ -331,7 +233,7 @@ function FullBooks() {
                       style={{
                         width: '100%',
                         padding: '14px',
-                        background: isLoading ? '#999' : '#00C853',
+                        background: isLoading ? '#999' : (validCoupon ? '#8B00FF' : '#00C853'),
                         color: '#fff',
                         border: 'none',
                         borderRadius: '12px',
@@ -339,7 +241,7 @@ function FullBooks() {
                         fontSize: '1.1rem'
                       }}
                     >
-                      {isLoading ? 'Processing...' : `Buy Now – ₦${book.priceNaira}`}
+                      {isLoading ? 'Processing...' : `Buy Now – ₦${displayPrice.toLocaleString()}`}
                     </button>
                   )}
                 </div>
@@ -351,7 +253,6 @@ function FullBooks() {
         <Outlet />
       </div>
 
-      {/* CUSTOM TOAST — NO LIBRARY NEEDED */}
       {toast.message && (
         <div style={{
           position: 'fixed',
@@ -366,9 +267,7 @@ function FullBooks() {
           fontSize: '1rem',
           boxShadow: '0 10px 30px rgba(0,0,0,0.3)',
           zIndex: 9999,
-          animation: 'toastSlide 0.5s ease-out',
-          maxWidth: '90%',
-          textAlign: 'center'
+          animation: 'toastSlide 0.5s ease-out'
         }}>
           {toast.message}
         </div>
@@ -376,14 +275,8 @@ function FullBooks() {
 
       <style jsx>{`
         @keyframes toastSlide {
-          from {
-            transform: translateX(-50%) translateY(100px);
-            opacity: 0;
-          }
-          to {
-            transform: translateX(-50%) translateY(0);
-            opacity: 1;
-          }
+          from { transform: translateX(-50%) translateY(100px); opacity: 0; }
+          to   { transform: translateX(-50%) translateY(0); opacity: 1; }
         }
       `}</style>
     </>

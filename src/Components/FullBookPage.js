@@ -18,6 +18,11 @@ const books = {
     pdfUrl: process.env.PUBLIC_URL + "/assets/jide-and-the-game-of-three-cups.pdf",
     image: process.env.PUBLIC_URL + "/assets/jide-and-the-game-of-three-cups.jpg",
   },
+    "the-psychology": {
+    title: "Jide and the Game of Three Cups",
+    pdfUrl: process.env.PUBLIC_URL + "/assets/the-psychology.pdf",
+    image: process.env.PUBLIC_URL + "/assets/the-psychology.jpg",
+  },
 };
 
 function FullBookPage() {
