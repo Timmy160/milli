@@ -21,7 +21,7 @@ function FullBooks() {
     { title: "Ada's Dream Bicycle", id: "adas-dream-bicycle", image: ada, priceNaira: 999, allowCoupon: true },
     { title: "Jide and the Game of Three Cups", id: "jide-and-the-game-of-three-cups", image: jid, priceNaira: 999, allowCoupon: false },
     {
-      title: "The Psychology And Spiritual Of Making 1 Million Naira As A Student In Due Time",
+      title: "The Psychology And Spiritual Of Making Millions ",
       id: "the-psychology",
       image: psychology,
       priceNaira: 15000,
@@ -169,9 +169,8 @@ function FullBooks() {
                   style={{
                     width: '100%',
                     height: '280px',
-                    objectFit: 'contain',
-                    padding: '12px',
-                    background: '#fafafa'
+                    objectFit: 'fill',
+                    padding: '2px',
                   }}
                 />
 
