@@ -25,8 +25,10 @@ function FullBooks() {
       id: "the-psychology",
       image: psychology,
       priceNaira: 15000,
-      discountedPrice: 5000,
-      couponCode: "124DC",        // ← NEW COUPON (case-insensitive)
+      couponCodes: [
+        { code: "124DC", price: 5000 },
+        { code: "123BC", price: 1000 }
+      ],
       allowCoupon: true,
     },
   ];
@@ -85,8 +87,22 @@ function FullBooks() {
       const paystack = new window.PaystackPop();
 
       const entered = (couponCode[book.id] || "").trim().toUpperCase();
-      const validCoupon = book.couponCode && entered === book.couponCode.toUpperCase();
-      const amount = validCoupon && book.discountedPrice ? book.discountedPrice : book.priceNaira;
+      let amount = book.priceNaira;
+      let validCoupon = false;
+      let appliedCoupon = null;
+
+      if (book.couponCodes) {
+        const matched = book.couponCodes.find(c => c.code === entered);
+        if (matched) {
+          validCoupon = true;
+          amount = matched.price;
+          appliedCoupon = entered;
+        }
+      } else if (book.couponCode && entered === book.couponCode.toUpperCase()) {
+        validCoupon = true;
+        amount = book.discountedPrice || book.priceNaira;
+        appliedCoupon = entered;
+      }
 
       paystack.newTransaction({
         key: PAYSTACK_PUBLIC_KEY,
@@ -94,20 +110,20 @@ function FullBooks() {
         amount: amount * 100,
         currency: "NGN",
         ref: `lb_${book.id}_${Date.now()}`,
-        metadata: { book_id: book.id, user_id: currentUser.uid, coupon: validCoupon ? entered : null },
+        metadata: { book_id: book.id, user_id: currentUser.uid, coupon: validCoupon ? appliedCoupon : null },
         onSuccess: async () => {
           const newList = [...new Set([...userUnlockedBooks, book.id])];
           await updateDoc(doc(db, 'users', currentUser.uid), { unlockedBooks: newList });
           setUserUnlockedBooks(newList);
           showToast(
             validCoupon
-              ? `Coupon applied! Unlocked for ₦${book.discountedPrice.toLocaleString()}`
+              ? `Coupon ${appliedCoupon} applied! Book unlocked for ₦${amount.toLocaleString()}`
               : `"${book.title}" unlocked!`,
             "success"
           );
           if (validCoupon) setCouponCode(prev => ({ ...prev, [book.id]: "" }));
         },
-        onCancel: () => console.log("Cancelled"),
+        onCancel: () => console.log("Payment cancelled"),
         onError: () => showToast("Payment failed", "error"),
         onClose: () => setLoadingBooks(prev => { const s = new Set(prev); s.delete(book.id); return s; }),
       });
@@ -142,8 +158,22 @@ function FullBooks() {
             const unlocked = isUnlocked(book.id);
             const isLoading = loadingBooks.has(book.id);
             const entered = (couponCode[book.id] || "").trim().toUpperCase();
-            const validCoupon = book.couponCode && entered === book.couponCode.toUpperCase();
-            const displayPrice = validCoupon && book.discountedPrice ? book.discountedPrice : book.priceNaira;
+
+            let displayPrice = book.priceNaira;
+            let validCoupon = false;
+            let appliedCoupon = null;
+
+            if (book.couponCodes) {
+              const matched = book.couponCodes.find(c => c.code === entered);
+              if (matched) {
+                validCoupon = true;
+                displayPrice = matched.price;
+                appliedCoupon = entered;
+              }
+            } else if (book.couponCode && entered === book.couponCode.toUpperCase()) {
+              validCoupon = true;
+              displayPrice = book.discountedPrice || book.priceNaira;
+            }
 
             return (
               <li key={book.id} style={{
@@ -193,13 +223,13 @@ function FullBooks() {
                     <div style={{ marginBottom: '16px' }}>
                       <input
                         type="text"
-                        placeholder="Have a coupon? (e.g. 124DC)"
+                        placeholder="Enter coupon code (e.g. SAVE50)"
                         value={couponCode[book.id] || ""}
                         onChange={(e) => setCouponCode(prev => ({ ...prev, [book.id]: e.target.value }))}
                         style={{
                           width: '100%',
                           padding: '12px',
-                          borderRadius: '8px',
+                          borderRadius: '0px',   // Border radius removed → square corners
                           border: '2px solid #ddd',
                           fontSize: '1rem',
                           marginBottom: '8px'
@@ -248,10 +278,10 @@ function FullBooks() {
             );
           })}
         </ul>
-
         <Outlet />
       </div>
 
+      {/* Toast */}
       {toast.message && (
         <div style={{
           position: 'fixed',
@@ -275,7 +305,7 @@ function FullBooks() {
       <style jsx>{`
         @keyframes toastSlide {
           from { transform: translateX(-50%) translateY(100px); opacity: 0; }
-          to   { transform: translateX(-50%) translateY(0); opacity: 1; }
+          to { transform: translateX(-50%) translateY(0); opacity: 1; }
         }
       `}</style>
     </>
